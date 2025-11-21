@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Zap as Bolt, Play, CheckCircle, Microscope, Cpu, Battery } from 'lucide-react';
+import { Zap, Zap as Bolt, Play, CheckCircle, Microscope, Cpu, Battery, X } from 'lucide-react';
 
 const SectionLink: React.FC<{ href: string; label: string; active?: boolean }> = ({ href, label, active }) => (
   <a
@@ -20,6 +20,7 @@ const SectionLink: React.FC<{ href: string; label: string; active?: boolean }> =
 const ZeflashLanding: React.FC = () => {
   const topRef = useRef<HTMLDivElement | null>(null);
   const [activeSection, setActiveSection] = useState<string>('');
+  const [modalOpen, setModalOpen] = useState<string | null>(null);
 
   useEffect(() => {
     const sectionIds = ['what', 'features', 'how', 'science', 'who', 'why'];
@@ -91,7 +92,7 @@ const ZeflashLanding: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
-              <p className="text-sm font-semibold text-blue-600">Zeflash (Website Landing Page)</p>
+              <p className="text-sm font-semibold text-blue-600">Zeflash </p>
               <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900">
                 ⚡ Zeflash: Rapid AI Diagnostics & Power
               </h1>
@@ -261,9 +262,217 @@ const ZeflashLanding: React.FC = () => {
         </div>
       </div>
 
-      <footer className="py-8 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center text-sm text-gray-600">
-          © {new Date().getFullYear()} Ziptrax Tech — Zeflash Rapid Diagnostics
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setModalOpen(null)}></div>
+            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {modalOpen === 'privacy' && '🔐 Privacy Policy'}
+                  {modalOpen === 'terms' && '📄 Terms of Use'}
+                  {modalOpen === 'refund' && '💸 Refund & Cancellation Policy'}
+                </h2>
+                <button onClick={() => setModalOpen(null)} className="text-gray-500 hover:text-gray-700">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="px-6 py-6">
+                {modalOpen === 'privacy' && (
+                  <div className="space-y-6 text-gray-700">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">1. Information We Collect</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li><strong>Personal Information:</strong> Name, contact details, vehicle information.</li>
+                        <li><strong>Usage Data:</strong> App usage logs, platform interactions.</li>
+                        <li><strong>Telematics Data:</strong> GPS coordinates, battery status, diagnostics from IoT hardware.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">2. How We Use It</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>To operate and improve the platform.</li>
+                        <li>To provide you with billing, diagnostics, smart usage alerts, and warranty tracking.</li>
+                        <li>To communicate with you, including support and service notifications.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">3. Data Sharing</h3>
+                      <p className="mb-2">We may share data with:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Service centers (for diagnostics and repair).</li>
+                        <li>Authorized warranty providers.</li>
+                        <li>Legal authorities when required by law.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">4. Data Security</h3>
+                      <p>We implement administrative, technical, and physical safeguards to protect your data from unauthorized access.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">5. Your Rights</h3>
+                      <p className="mb-2">You may:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Access and correct your personal data.</li>
+                        <li>Request deletion of your personal data.</li>
+                        <li>Opt out of non-essential communications.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">6. Policy Changes</h3>
+                      <p>We may update this Policy. Notification will be provided via the app or email. Continued use means you accept the changes.</p>
+                    </div>
+                  </div>
+                )}
+
+                {modalOpen === 'terms' && (
+                  <div className="space-y-6 text-gray-700">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">1. Acceptance of Terms</h3>
+                      <p>By using the Zeflash app, web dashboard, or hardware services, you agree to these Terms of Use and our Privacy Policy.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">2. License to Use</h3>
+                      <p>We grant you a non-exclusive, non-transferable license to access and use the platform solely for managing your EV(s), fleet, or related business operations.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">3. Restrictions</h3>
+                      <p className="mb-2">You must not:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Reproduce, distribute, modify, or publicly display content from the platform.</li>
+                        <li>Reverse-engineer, decompile, or attempt to derive source code.</li>
+                        <li>Use the platform for illegal or unauthorized purposes.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">4. User Responsibilities</h3>
+                      <p className="mb-2">You are responsible for:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Maintaining confidentiality of account credentials.</li>
+                        <li>Ensuring your use of the platform complies with applicable local laws and regulations.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">5. Warranty</h3>
+                      <p>The platform and services are provided "as-is," without any express or implied warranties. Ziptrax Technologies disclaims all warranties, including merchantability or fitness for a particular purpose.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">6. Limitation of Liability</h3>
+                      <p>Ziptrax Technologies (and its affiliates) will not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">7. Termination</h3>
+                      <p>We may suspend or terminate your account and access immediately if you violate these Terms.</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">8. Modifications</h3>
+                      <p>These Terms may be updated from time to time. Continued use of the platform constitutes acceptance of changes.</p>
+                    </div>
+                  </div>
+                )}
+
+                {modalOpen === 'refund' && (
+                  <div className="space-y-6 text-gray-700">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">1. Hardware + Installation</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>All device + installation purchases are final – no refunds.</li>
+                        <li>You may cancel your order before it is dispatched for a full refund, minus any processing fee.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">2. Software Subscriptions</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Annual subscriptions may be canceled within 14 days of purchase for a full refund.</li>
+                        <li>No refunds are issued after the 14-day period.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">3. Renewal Policy</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Software renewals are automatic. To avoid renewal, cancel at least 7 days before expiry.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">4. How to Request</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>To request a refund or cancellation, contact support at <a href="mailto:support@zeflash.app" className="text-blue-600 hover:underline">support@zeflash.app</a> with your order or subscription ID.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="py-12 bg-gradient-to-br from-gray-800 via-gray-900 to-blue-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            {/* Company Info */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
+                  <Zap className="text-white" size={20} />
+                </div>
+                <h3 className="text-xl font-bold">Zeflash</h3>
+              </div>
+              <p className="text-gray-300 text-sm">
+                India's leading AI & IoT-driven EV battery diagnostics platform.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-gray-300 text-sm">
+                <li><a href="#what" className="hover:text-cyan-400 transition-colors">Home</a></li>
+                <li><a href="#features" className="hover:text-cyan-400 transition-colors">Features</a></li>
+                <li><a href="#how" className="hover:text-cyan-400 transition-colors">Coverage</a></li>
+                <li><a href="#book" className="hover:text-cyan-400 transition-colors">Get Quote</a></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Legal</h3>
+              <ul className="space-y-2">
+                <li>
+                  <button onClick={() => setModalOpen('privacy')} className="text-gray-300 hover:text-cyan-400 transition-colors text-sm underline">
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setModalOpen('terms')} className="text-gray-300 hover:text-cyan-400 transition-colors text-sm underline">
+                    Terms of Use
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setModalOpen('refund')} className="text-gray-300 hover:text-cyan-400 transition-colors text-sm underline">
+                    Refund & Cancellation Policy
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company Details & Contact */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Company Details & Contact</h3>
+              <div className="text-gray-300 text-sm space-y-2">
+                <p className="font-semibold text-white">Zipbolt Technologies Pvt Ltd</p>
+                <p>MGF Metropolis Mall, MG Road,<br />Gurgaon, Haryana – 122002</p>
+                <p>Phone: <a href="tel:+918368681769" className="hover:text-cyan-400">+91 83686 81769</a></p>
+                <p>Email: <a href="mailto:contact@zeflash.app" className="hover:text-cyan-400">contact@zeflash.app</a></p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+            © {new Date().getFullYear()} Zeflash. All Rights Reserved.
+          </div>
         </div>
       </footer>
     </div>

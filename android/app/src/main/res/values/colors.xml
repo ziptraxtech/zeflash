@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Zeflash brand colors -->
+    <color name="colorPrimary">#0ea5e9</color> <!-- Blue-500 -->
+    <color name="colorPrimaryDark">#0284c7</color> <!-- Blue-600 -->
+    <color name="colorAccent">#06b6d4</color> <!-- Cyan-500 -->
+    
+    <!-- Additional Zeflash colors -->
+    <color name="blue_600">#2563eb</color>
+    <color name="cyan_500">#06b6d4</color>
+    <color name="white">#ffffff</color>
+    <color name="gray_900">#111827</color>
+</resources>

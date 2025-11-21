@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Lightning bolt (Zap) icon - Zeflash logo -->
+    <path
+        android:pathData="M40,20L50,20L42,54L62,54L48,88L40,60L55,60L40,20Z"
+        android:fillColor="#ffffff"
+        android:strokeWidth="1"
+        android:strokeColor="#ffffff"/>
+        
+    <!-- Text "Z" for Zeflash -->
+    <path
+        android:pathData="M65,25L80,25L80,30L72,30L80,40L80,45L65,45L65,40L73,40L65,30L65,25Z"
+        android:fillColor="#ffffff"/>
+</vector>
