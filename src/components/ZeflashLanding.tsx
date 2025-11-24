@@ -74,9 +74,9 @@ const ZeflashLanding: React.FC = () => {
             <SectionLink href="#why" label="Why Zeflash" active={activeSection==='why'} />
           </nav>
           <div className="flex items-center gap-2">
-            <a href="#book" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold px-3 py-2 hover:from-cyan-600 hover:to-blue-700 shadow-md shadow-blue-200/40">
+            <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold px-3 py-2 hover:from-cyan-600 hover:to-blue-700 shadow-md shadow-blue-200/40">
               <Bolt size={16} /> Quick Test
-            </a>
+            </Link>
             <Link to={"/"} className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium px-3 py-2 hover:bg-gray-50">
               Dashboard
             </Link>
@@ -103,9 +103,9 @@ const ZeflashLanding: React.FC = () => {
                 Zeflash combines flash-based EV testing at Fast Chargers with ZipsureAI's battery physics-driven AI Deeptech to decode your EV's true performance, aging, and safety condition on the spot.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <a href="#book" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold px-4 py-2.5 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200/30">
+                <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold px-4 py-2.5 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200/30">
                   <CheckCircle size={18} /> Book a Zeflash RapidTest
-                </a>
+                </Link>
                 <a href="#demo" className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-300 text-gray-800 font-medium px-4 py-2.5 hover:bg-gray-50 shadow-sm">
                   <Play size={18} /> Request a Free Demo
                 </a>
@@ -242,9 +242,9 @@ const ZeflashLanding: React.FC = () => {
             Zeflash turns complex battery data into clear, confident action — empowering every EV decision with real-time intelligence.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 justify-center">
-            <a href="#book" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white font-semibold px-5 py-3 hover:bg-blue-700">
+            <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white font-semibold px-5 py-3 hover:bg-blue-700">
               <Bolt size={18} /> Book a Zeflash RapidTest
-            </a>
+            </Link>
             <a href="#demo" className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-300 text-gray-800 font-medium px-5 py-3 hover:bg-gray-50">
               <Play size={18} /> Request a Free Demo
             </a>
@@ -256,9 +256,9 @@ const ZeflashLanding: React.FC = () => {
       <div className="fixed bottom-3 inset-x-0 px-3 sm:px-6 z-40 md:hidden pointer-events-none">
         <div className="pointer-events-auto mx-auto max-w-2xl rounded-2xl border border-blue-100 bg-white/95 backdrop-blur shadow-lg p-3 flex items-center justify-between">
           <div className="text-sm font-semibold text-gray-800">Start a Quick Zeflash Test</div>
-          <a href="#book" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold px-3 py-2">
+          <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold px-3 py-2">
             <Bolt size={16} /> Quick Test
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -432,7 +432,7 @@ const ZeflashLanding: React.FC = () => {
                 <li><a href="#what" className="hover:text-cyan-400 transition-colors">Home</a></li>
                 <li><a href="#features" className="hover:text-cyan-400 transition-colors">Features</a></li>
                 <li><a href="#how" className="hover:text-cyan-400 transition-colors">Coverage</a></li>
-                <li><a href="#book" className="hover:text-cyan-400 transition-colors">Get Quote</a></li>
+                <li><Link to="/stations" className="hover:text-cyan-400 transition-colors">Get Quote</Link></li>
               </ul>
             </div>
 
