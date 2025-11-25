@@ -370,6 +370,13 @@ const TemperatureChart: React.FC<ChartProps> = ({ severity }) => {
   const points = 180;
   const baseSeries = generateSeries(points, 65, 3.5);
   const anomalies = baseSeries.map((value, index) => (value > 70 && index % 41 === 0 ? true : false));
+  const severityLabel = severity.includes('Immediate')
+    ? { text: 'Critical Heat Risk', className: 'bg-red-600' }
+    : severity.includes('Degradation')
+      ? { text: 'Heat Monitoring', className: 'bg-amber-500' }
+      : severity.includes('Moderate')
+        ? { text: 'Watchlist', className: 'bg-yellow-500' }
+        : { text: 'Stable Thermal Range', className: 'bg-emerald-500' };
 
   return (
     <div className="relative bg-gradient-to-b from-orange-50 to-white border border-orange-100 rounded-md p-2 sm:p-3 shadow-inner">
@@ -405,6 +412,11 @@ const TemperatureChart: React.FC<ChartProps> = ({ severity }) => {
         <span>Start</span>
         <span>Sample Index</span>
         <span>End</span>
+      </div>
+      <div
+        className={`absolute top-1.5 right-1.5 text-[10px] px-2 py-1 rounded text-white font-semibold shadow ${severityLabel.className}`}
+      >
+        {severityLabel.text}
       </div>
       <div className="mt-2 flex flex-wrap gap-1 sm:gap-2 text-[9px] sm:text-[10px]">
         <span className="px-2 py-1 rounded bg-white border border-orange-100 shadow-sm">Temperature</span>
