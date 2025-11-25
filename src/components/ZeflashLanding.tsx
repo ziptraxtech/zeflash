@@ -97,7 +97,7 @@ const ZeflashLanding: React.FC = () => {
                 ⚡ Zeflash: Rapid AI Diagnostics & Power
               </h1>
               <p className="mt-4 text-gray-700 text-lg">
-                Quick 15 mins EV & Battery Test, anytime you charge your EV! With Zeflash, get a precise rapid battery health insight report in minutes, not hours.
+                Quick 20 mins EV & Battery Test, anytime you charge your EV! With Zeflash, get a precise rapid battery health insight report in minutes, not hours.
               </p>
               <p className="mt-2 text-gray-700">
                 Zeflash combines flash-based EV testing at Fast Chargers with ZipsureAI's battery physics-driven AI Deeptech to decode your EV's true performance, aging, and safety condition on the spot.
@@ -116,7 +116,7 @@ const ZeflashLanding: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors">
                     <div className="text-xs text-blue-700 font-semibold">Instant Health Report</div>
-                    <div className="text-3xl font-extrabold text-blue-700 mt-1">15 min</div>
+                    <div className="text-3xl font-extrabold text-blue-700 mt-1">20 min</div>
                   </div>
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors">
                     <div className="text-xs text-emerald-700 font-semibold">Accuracy</div>

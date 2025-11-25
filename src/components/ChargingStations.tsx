@@ -155,7 +155,7 @@ const ChargingStations: React.FC = () => {
               <h3 className="text-sm font-semibold text-cyan-700">Test Duration</h3>
               <Clock className="w-5 h-5 text-cyan-600" />
             </div>
-            <p className="text-3xl font-extrabold text-cyan-900">15 min</p>
+            <p className="text-3xl font-extrabold text-cyan-900">20 min</p>
             <p className="text-xs text-cyan-600 mt-1">Quick & accurate</p>
           </div>
           <div className="bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-2xl p-6">
@@ -234,7 +234,7 @@ const ChargingStations: React.FC = () => {
                     <div className="space-y-2 mb-6">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        <span>15-minute rapid test</span>
+                        <span>20-minute rapid test</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
@@ -242,13 +242,14 @@ const ChargingStations: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Book Now Button */}
-                    <button
+                    {/* View Report CTA */}
+                    <Link
+                      to={`/report/${station.id}`}
                       className="w-full py-3 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-base bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 hover:shadow-lg transform hover:scale-105 active:scale-95"
                     >
                       <Zap className="w-4 h-4" />
-                      Book Now
-                    </button>
+                      View Report
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -264,7 +265,7 @@ const ChargingStations: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Ultra-Fast Testing</h4>
-                    <p className="text-gray-600 text-sm">Get comprehensive battery diagnostics in just 15 minutes at any fast charger.</p>
+                    <p className="text-gray-600 text-sm">Get comprehensive battery diagnostics in just 20 minutes at any fast charger.</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
