@@ -1,6 +1,18 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, CheckCircle, AlertTriangle, Battery, Flame, Activity } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  CheckCircle,
+  AlertTriangle,
+  Battery,
+  Flame,
+  Activity,
+  Lock,
+  Share2,
+  ClipboardCheck,
+  BarChart3
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -96,6 +108,13 @@ const AIReport: React.FC = () => {
       generated_at: new Date().toISOString()
     };
   }, [backendDeviceId, deviceId]);
+
+    const visibleActions = data.recommended_actions.slice(0, 3);
+    const hiddenActions = data.recommended_actions.slice(3);
+
+    const handleComingSoon = useCallback(() => {
+      alert('This feature will be available soon.');
+    }, []);
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -196,62 +215,182 @@ const AIReport: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <div className="relative overflow-hidden rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-6">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-teal-100 rounded-full opacity-40" />
-                  <h3 className="text-sm font-semibold text-teal-600 mb-2 tracking-wide">Executive Summary</h3>
-                  <p className="text-gray-800 text-sm leading-relaxed line-clamp-6 sm:line-clamp-none">{data.summary}</p>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-teal-600 tracking-wide">Executive Summary</h3>
+                    <div className="relative pt-1">
+                      <div className="pointer-events-none select-none blur-sm">
+                        <p className="text-gray-800 text-sm leading-relaxed line-clamp-3">{data.summary}</p>
+                      </div>
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                        <button
+                          onClick={handleComingSoon}
+                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                        >
+                          <Lock size={14} />
+                          <span>Unlock Detailed Summary</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="relative overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6">
                   <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-indigo-100 rounded-full opacity-40" />
-                  <h3 className="text-sm font-semibold text-indigo-600 mb-2 tracking-wide">Risk Snapshot</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {Object.entries(data.anomalies.breakdown).map(([key, value]) => (
-                      <span
-                        key={key}
-                        className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-indigo-100 text-indigo-700 shadow-sm"
-                      >
-                        {key}: {value}
-                      </span>
-                    ))}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-indigo-600 tracking-wide">Risk Snapshot</h3>
+                    <div className="relative pt-1">
+                      <div className="pointer-events-none select-none blur-sm">
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(data.anomalies.breakdown).map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="px-3 py-1 rounded-full text-xs font-medium bg-white border border-indigo-100 text-indigo-700 shadow-sm"
+                            >
+                              {key}: {value}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-indigo-700 mt-3">Total anomalies (excl. low): {data.anomalies.total}</p>
+                      </div>
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white via-white/85 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                        <button
+                          onClick={handleComingSoon}
+                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                        >
+                          <Lock size={14} />
+                          <span>Unlock Risk Breakdown</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-indigo-700 mt-3">Total anomalies (excl. low): {data.anomalies.total}</p>
                 </div>
                 <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 md:col-span-2 xl:col-span-1">
                   <div className="absolute -top-8 -left-6 w-40 h-40 bg-amber-100 rounded-full opacity-40" />
-                  <h3 className="text-sm font-semibold text-amber-600 mb-2 tracking-wide">Recommended Focus</h3>
-                  <ul className="text-sm text-amber-800 space-y-1 list-disc pl-5">
-                    {data.recommended_actions.slice(0, 4).map((action, index) => (
-                      <li key={index}>{action}</li>
-                    ))}
-                  </ul>
-                  <p className="text-xs text-amber-700 mt-3">Detailed actions below</p>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-amber-600 tracking-wide">Recommended Focus</h3>
+                    <div className="relative pt-1">
+                      <div className="pointer-events-none select-none blur-sm">
+                        <ul className="text-sm text-amber-800 space-y-1 list-disc pl-5">
+                          {visibleActions.slice(0, 2).map((action, index) => (
+                            <li key={index}>{action}</li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-amber-700 mt-3">Detailed actions below</p>
+                      </div>
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white via-white/85 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                        <button
+                          onClick={handleComingSoon}
+                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                        >
+                          <Lock size={14} />
+                          <span>Unlock Focus Playbook</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+              <div className="flex flex-wrap justify-end gap-3">
+                <button
+                  onClick={handleExportPDF}
+                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50"
+                >
+                  <Download size={16} />
+                  Export PDF
+                </button>
+                <button
+                  onClick={handleComingSoon}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                >
+                  <Share2 size={16} />
+                  Share Snapshot
+                </button>
+                <button
+                  onClick={handleComingSoon}
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition-colors hover:bg-emerald-100"
+                >
+                  <ClipboardCheck size={16} />
+                  Request Technician Review
+                </button>
+              </div>
 
-              <div className="bg-green-50 border border-green-200 p-6 rounded-xl">
+              <div className="relative overflow-hidden bg-green-50 border border-green-200 p-6 rounded-xl">
                 <h3 className="text-xl font-semibold text-green-800 mb-2">Professional Verdict</h3>
-                <p className="text-gray-800 leading-relaxed">{data.summary}</p>
+                <div className="relative">
+                  <div className="pointer-events-none select-none blur-sm">
+                    <p className="text-gray-800 leading-relaxed line-clamp-3">{data.summary}</p>
+                  </div>
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-green-50 via-green-50/80 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                    <button
+                      onClick={handleComingSoon}
+                      className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-green-700"
+                    >
+                      <Lock size={14} />
+                      <span>View Analyst Notes</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Recommended Actions</h3>
                 <ul className="list-disc pl-6 text-gray-800 space-y-1">
-                  {data.recommended_actions.map((action, index) => (
+                  {visibleActions.map((action, index) => (
                     <li key={index}>{action}</li>
                   ))}
                 </ul>
+                {hiddenActions.length > 0 && (
+                  <div className="relative mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div className="pointer-events-none select-none blur-sm">
+                      <ul className="list-disc pl-5 text-sm text-blue-900 space-y-1">
+                        {hiddenActions.map((action, index) => (
+                          <li key={`hidden-${index}`}>{action}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-blue-50 via-blue-50/80 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                      <button
+                        onClick={handleComingSoon}
+                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                      >
+                        <Lock size={14} />
+                        <span>Unlock Full Playbook</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-white border border-gray-200 p-6 rounded-xl">
+              <div className="relative overflow-hidden bg-white border border-gray-200 p-6 rounded-xl">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Anomaly Summary</h3>
                 <p className="text-gray-700 mb-2">
                   Total anomalies: <span className="font-semibold">{data.anomalies.total}</span>
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {Object.entries(data.anomalies.breakdown).map(([key, value]) => (
-                    <div key={key} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                      <div className="text-sm text-gray-500 capitalize">{key}</div>
-                      <div className="text-xl font-bold text-gray-900">{value}</div>
+                <div className="relative">
+                  <div className="pointer-events-none select-none blur-[1px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {Object.entries(data.anomalies.breakdown).map(([key, value]) => (
+                        <div key={key} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                          <div className="text-sm text-gray-500 capitalize">{key}</div>
+                          <div className="text-xl font-bold text-gray-900">{value}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white via-white/85 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+                    <button
+                      onClick={handleComingSoon}
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                    >
+                      <BarChart3 size={14} />
+                      <span>Download CSV</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

@@ -4,6 +4,7 @@ import ZeflashLanding from './components/ZeflashLanding'
 import ChargingStations from './components/ChargingStations'
 import BatteryReport from './components/BatteryReport'
 import AIReport from './components/AIReport'
+import AIReportCheckout from './components/AIReportCheckout'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/" element={<ZeflashLanding />} />
       <Route path="/stations" element={<ChargingStations />} />
       <Route path="/report/:deviceId" element={<BatteryReport />} />
+      <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />
       <Route path="/report/:deviceId/ai" element={<AIReport />} />
     </Routes>
   )
