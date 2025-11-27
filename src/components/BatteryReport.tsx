@@ -33,27 +33,6 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const loadRazorpayScript = () =>
-  new Promise<boolean>((resolve) => {
-    if (typeof window === 'undefined') {
-      resolve(false);
-      return;
-    }
-
-    if (document.getElementById('razorpay-sdk')) {
-      resolve(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = 'razorpay-sdk';
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-
 interface Range {
   min: number;
   max: number;
@@ -290,7 +269,6 @@ const BatteryReport: React.FC = () => {
   const report = deviceReports[deviceId ?? ''];
   const [exporting, setExporting] = useState(false);
   const [unlocked] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
   const reportRef = useRef<HTMLDivElement | null>(null);
 
   if (!report) {
@@ -439,67 +417,17 @@ const BatteryReport: React.FC = () => {
     }
   };
 
-  const handleUnlockAI = useCallback(async () => {
+  const handleComingSoon = useCallback(() => {
+    alert('This feature will be available soon.');
+  }, []);
+
+  const handleUnlockAI = useCallback(() => {
     if (!deviceId) {
       navigate('/stations');
       return;
     }
-
-    if (processingPayment) return;
-
-    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
-    if (!keyId) {
-      alert('Razorpay key is not configured. Please set VITE_RAZORPAY_KEY_ID.');
-      return;
-    }
-
-    setProcessingPayment(true);
-
-    const loaded = await loadRazorpayScript();
-    if (!loaded || typeof window.Razorpay === 'undefined') {
-      alert('Failed to load Razorpay. Check your network and try again.');
-      setProcessingPayment(false);
-      return;
-    }
-
-    const options: RazorpayOptions = {
-      key: keyId,
-      amount: 4900,
-      currency: 'INR',
-      name: 'Zeflash AI Report',
-      description: `Unlock detailed AI report for Device ${deviceId}`,
-      handler: (response) => {
-        setProcessingPayment(false);
-        navigate(`/report/${deviceId}/ai`, {
-          state: { paymentId: response.razorpay_payment_id }
-        });
-      },
-      prefill: {
-        name: 'Zeflash Customer'
-      },
-      notes: {
-        deviceId: deviceId,
-        product: 'ai-report'
-      },
-      theme: {
-        color: '#2563eb'
-      },
-      modal: {
-        ondismiss: () => {
-          setProcessingPayment(false);
-        }
-      }
-    };
-
-    try {
-      const checkout = new window.Razorpay(options);
-      checkout.open();
-    } catch (error) {
-      console.error('Razorpay Error', error);
-      alert('Unable to initiate payment. Please try again.');
-      setProcessingPayment(false);
-    }
-  }, [deviceId, navigate, processingPayment]);
+    navigate(`/report/${deviceId}/checkout`);
+  }, [deviceId, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -534,13 +462,10 @@ const BatteryReport: React.FC = () => {
               </button>
               <button
                 onClick={handleUnlockAI}
-                disabled={processingPayment}
-                className={`flex items-center px-2 sm:px-3 py-2 rounded-lg transition-colors hover:bg-gray-100 ${
-                  processingPayment ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                className="flex items-center px-2 sm:px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 transition-colors hover:bg-gray-100"
               >
                 <FileText className="sm:mr-2" size={18} />
-                <span className="hidden sm:inline">{processingPayment ? 'Processing…' : 'Unlock AI (₹49)'}</span>
+                <span className="hidden sm:inline">Unlock AI (₹99)</span>
               </button>
               <button
                 aria-label="Share"
@@ -677,6 +602,25 @@ const BatteryReport: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-gray-500">Preview only — unlock AI to benchmark against fleet cohorts.</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUnlockAI}
+                  className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                >
+                  <Lock size={14} />
+                  <span>Unlock AI Benchmarks (₹99)</span>
+                </button>
+                <button
+                  onClick={handleComingSoon}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                >
+                  <Share2 size={14} />
+                  <span>Share Snapshot</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
@@ -695,6 +639,25 @@ const BatteryReport: React.FC = () => {
                   <Line type="monotone" dataKey="efficiency" stroke="#3B82F6" strokeWidth={3} name="Efficiency %" />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-gray-500">Unlock AI forecasting to project future charge and thermal behavior.</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUnlockAI}
+                  className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                >
+                  <Lock size={14} />
+                  <span>Unlock AI Forecast (₹99)</span>
+                </button>
+                <button
+                  onClick={handleComingSoon}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                >
+                  <Download size={14} />
+                  <span>Download CSV</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -737,12 +700,9 @@ const BatteryReport: React.FC = () => {
                   <p className="mt-1 text-xs text-gray-600">Unlock detailed insights powered by Zipsure AI.</p>
                   <button
                     onClick={handleUnlockAI}
-                    disabled={processingPayment}
-                    className={`mt-3 inline-flex items-center justify-center rounded-lg px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${
-                      processingPayment ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
+                    className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                   >
-                    {processingPayment ? 'Processing…' : 'Unlock AI Report (₹49)'}
+                    Unlock AI Report (₹99)
                   </button>
                 </div>
               </div>
@@ -795,12 +755,9 @@ const BatteryReport: React.FC = () => {
                   <p className="mt-1 text-xs text-gray-600">Gain recommendations based on predictive modeling.</p>
                   <button
                     onClick={handleUnlockAI}
-                    disabled={processingPayment}
-                    className={`mt-3 inline-flex items-center justify-center rounded-lg px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${
-                      processingPayment ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
+                    className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                   >
-                    {processingPayment ? 'Processing…' : 'Unlock AI Report (₹49)'}
+                    Unlock AI Report (₹99)
                   </button>
                 </div>
               </div>
@@ -849,12 +806,9 @@ const BatteryReport: React.FC = () => {
                 <p className="mt-1 text-xs text-gray-600">Unlock the tailored remediation roadmap.</p>
                 <button
                   onClick={handleUnlockAI}
-                  disabled={processingPayment}
-                  className={`mt-3 inline-flex items-center justify-center rounded-lg px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${
-                    processingPayment ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
+                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                 >
-                  {processingPayment ? 'Processing…' : 'Unlock AI Report (₹49)'}
+                  Unlock AI Report (₹99)
                 </button>
               </div>
             </div>
