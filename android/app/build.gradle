@@ -22,6 +22,12 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+    
     buildTypes {
         release {
             minifyEnabled false

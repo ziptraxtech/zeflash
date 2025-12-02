@@ -5,6 +5,7 @@ import ChargingStations from './components/ChargingStations'
 import BatteryReport from './components/BatteryReport'
 import AIReport from './components/AIReport'
 import AIReportCheckout from './components/AIReportCheckout'
+import PlanCheckout from './components/PlanCheckout'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/report/:deviceId" element={<BatteryReport />} />
       <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />
       <Route path="/report/:deviceId/ai" element={<AIReport />} />
+      <Route path="/checkout" element={<PlanCheckout />} />
     </Routes>
   )
 }
