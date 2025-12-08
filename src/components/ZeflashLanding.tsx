@@ -114,9 +114,7 @@ const ZeflashLanding: React.FC = () => {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-md shadow-blue-200/40">
-              <Zap className="text-white" size={20} />
-            </div>
+            <img src="/logo.png" alt="Zeflash Logo" className="h-12 w-12 object-contain" />
             <div className="leading-tight">
               <div className="text-base font-bold">Zeflash</div>
               <div className="text-xs text-gray-500">Rapid AI Diagnostics & Power</div>
