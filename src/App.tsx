@@ -6,11 +6,13 @@ import BatteryReport from './components/BatteryReport'
 import AIReport from './components/AIReport'
 import AIReportCheckout from './components/AIReportCheckout'
 import PlanCheckout from './components/PlanCheckout'
+import PricingPlans from './components/PricingPlans'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<ZeflashLanding />} />
+      <Route path="/plans" element={<PricingPlans />} />
       <Route path="/stations" element={<ChargingStations />} />
       <Route path="/report/:deviceId" element={<BatteryReport />} />
       <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />

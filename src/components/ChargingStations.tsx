@@ -218,20 +218,20 @@ const ChargingStations: React.FC = () => {
                   <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500" />
 
                   {/* Content */}
-                  <div className="p-6 flex-1 flex flex-col justify-between">
-                    {/* Station Name */}
-                    <div className="mb-4">
-                      <h3 className="font-bold text-xl text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">{station.name}</h3>
-                    </div>
-
-                    {/* Location */}
-                    <div className="flex items-start gap-2 mb-6">
-                      <MapPin className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-700 font-medium leading-relaxed">{station.location}</p>
+                  <div className="p-6 pt-5 flex-1 flex flex-col">
+                    {/* Station Name (location louder than device id) */}
+                    <div className="mb-2.5">
+                      <h3 className="font-bold text-lg text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
+                        {station.location}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
+                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
+                        <span>{station.name}</span>
+                      </div>
                     </div>
 
                     {/* Features */}
-                    <div className="space-y-2 mb-6">
+                    <div className="space-y-1.5 mb-4 text-xs text-gray-600">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                         <span>20-minute rapid test</span>
@@ -242,14 +242,32 @@ const ChargingStations: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* View Report CTA */}
-                    <Link
-                      to={`/report/${station.id}`}
-                      className="w-full py-3 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-base bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 hover:shadow-lg transform hover:scale-105 active:scale-95"
-                    >
-                      <Zap className="w-4 h-4" />
-                      View Report
-                    </Link>
+                    {/* Chargers at this station */}
+                    <div className="mt-2 space-y-2.5 border-t border-blue-100 pt-3">
+                      {['A', 'B', 'C'].map((label) => (
+                        <div
+                          key={label}
+                          className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/70 px-3.5 py-2.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                              {label}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">Device {label}</p>
+                              <p className="text-[11px] text-gray-500">Fast charger at this station</p>
+                            </div>
+                          </div>
+                          <Link
+                            to={`/report/${station.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-sm"
+                          >
+                            <Zap className="w-3 h-3" />
+                            View report
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
