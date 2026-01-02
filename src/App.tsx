@@ -1,5 +1,6 @@
 
 import { Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import ZeflashLanding from './components/ZeflashLanding'
 import ChargingStations from './components/ChargingStations'
 import BatteryReport from './components/BatteryReport'
@@ -10,15 +11,18 @@ import PricingPlans from './components/PricingPlans'
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<ZeflashLanding />} />
-      <Route path="/plans" element={<PricingPlans />} />
-      <Route path="/stations" element={<ChargingStations />} />
-      <Route path="/report/:deviceId" element={<BatteryReport />} />
-      <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />
-      <Route path="/report/:deviceId/ai" element={<AIReport />} />
-      <Route path="/checkout" element={<PlanCheckout />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<ZeflashLanding />} />
+        <Route path="/plans" element={<PricingPlans />} />
+        <Route path="/stations" element={<ChargingStations />} />
+        <Route path="/report/:deviceId" element={<BatteryReport />} />
+        <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />
+        <Route path="/report/:deviceId/ai" element={<AIReport />} />
+        <Route path="/checkout" element={<PlanCheckout />} />
+      </Routes>
+      <Analytics />
+    </>
   )
 }
 
