@@ -512,7 +512,7 @@ const TemperatureChart: React.FC<ChartProps> = ({ severity }) => {
   const severityLabel = severity.includes('Immediate')
     ? { text: 'Critical Heat Risk', className: 'bg-red-600' }
     : severity.includes('Degradation')
-      ? { text: 'Heat Monitoring', className: 'bg-amber-500' }
+      ? { text: 'Heat Monitoring Dash', className: 'bg-amber-500' }
       : severity.includes('Moderate')
         ? { text: 'Watchlist', className: 'bg-yellow-500' }
         : { text: 'Stable Thermal Range', className: 'bg-emerald-500' };

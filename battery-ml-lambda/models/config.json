@@ -1,0 +1,70 @@
+{
+    "model_type": "Battery Current & Temperature Anomaly Detection (API-Based)",
+    "date_created": "2025-11-28 15:42:59",
+    "total_samples": 800,
+    "devices": [
+        "device5",
+        "device6",
+        "device7",
+        "device8"
+    ],
+    "api_endpoints": [
+        "https://le3tvo1cgc.execute-api.us-east-1.amazonaws.com/prod/get-data?table=device5",
+        "https://le3tvo1cgc.execute-api.us-east-1.amazonaws.com/prod/get-data?table=device6",
+        "https://le3tvo1cgc.execute-api.us-east-1.amazonaws.com/prod/get-data?table=device7",
+        "https://le3tvo1cgc.execute-api.us-east-1.amazonaws.com/prod/get-data?table=device8"
+    ],
+    "hyperparameters": {
+        "contamination": 0.05,
+        "epochs": 150,
+        "batch_size": 32,
+        "learning_rate": 0.001,
+        "dropout_rate": 0.25,
+        "l2_reg": 1e-05,
+        "roll_win": 5
+    },
+    "autoencoder_threshold": 96.54004671974181,
+    "current_thresholds": {
+        "lower_critical": -86.19015262694532,
+        "lower_warning": 0.0,
+        "upper_warning": 1.8740499999999998,
+        "upper_critical": 88.93301221944532,
+        "rate_threshold": 0.2212999999999998,
+        "mean": 1.3714297962499997,
+        "median": 0.116725,
+        "std": 29.187194141065106,
+        "Q1": 0.0,
+        "Q3": 0.2202375,
+        "IQR": 0.2202375
+    },
+    "temperature_thresholds": {
+        "lower_critical": 37.73628269134739,
+        "lower_warning": 53.33,
+        "upper_warning": 71.11,
+        "upper_critical": 74.59208230865264,
+        "rate_threshold": 18.340000000000003,
+        "mean": 56.16418250000001,
+        "median": 53.33,
+        "std": 6.142633269550873,
+        "Q1": 53.33,
+        "Q3": 53.33,
+        "IQR": 0.0
+    },
+    "feature_names": [
+        "current",
+        "temperature",
+        "current_roll_mean",
+        "current_roll_std",
+        "current_roll_min",
+        "current_roll_max",
+        "temp_roll_mean",
+        "temp_roll_std",
+        "current_rate",
+        "temp_rate",
+        "current_lag1",
+        "temp_lag1",
+        "current_temp_ratio",
+        "current_temp_product"
+    ],
+    "note": "Discharge current is set to 0. All negative currents converted to 0."
+}

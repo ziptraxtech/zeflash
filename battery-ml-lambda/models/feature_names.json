@@ -1,0 +1,16 @@
+[
+  "current",
+  "temperature",
+  "current_roll_mean",
+  "current_roll_std",
+  "current_roll_min",
+  "current_roll_max",
+  "temp_roll_mean",
+  "temp_roll_std",
+  "current_rate",
+  "temp_rate",
+  "current_lag1",
+  "temp_lag1",
+  "current_temp_ratio",
+  "current_temp_product"
+]

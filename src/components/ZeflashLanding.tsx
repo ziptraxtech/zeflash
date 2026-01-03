@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Zap as Bolt, Play, CheckCircle, Microscope, Cpu, Battery, X } from 'lucide-react';
+import { Zap, Zap as Bolt, Play, CheckCircle, Microscope, Cpu, Battery, X, Download, Store } from 'lucide-react';
 
 const SectionLink: React.FC<{ href: string; label: string; active?: boolean }> = ({ href, label, active }) => (
   <a
@@ -21,6 +21,7 @@ const ZeflashLanding: React.FC = () => {
   const topRef = useRef<HTMLDivElement | null>(null);
   const [activeSection, setActiveSection] = useState<string>('');
   const [modalOpen, setModalOpen] = useState<string | null>(null);
+  const apkDownloadUrl = '/apk/zeflash-latest.apk';
 
   useEffect(() => {
     const sectionIds = ['what', 'features', 'how', 'science', 'who', 'why'];
@@ -128,6 +129,39 @@ const ZeflashLanding: React.FC = () => {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">Illustrative metrics. Live values depend on vehicle and session.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* App Download */}
+      <section id="app-download" className="py-10 sm:py-12 bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            <div>
+              <p className="text-sm font-semibold text-blue-600">Mobile App</p>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">Get the Zeflash app</h2>
+              <p className="mt-3 text-gray-700 max-w-2xl">Download the Android APK now. Play Store rollout is on the way.</p>
+            </div>
+            <div className="flex flex-col gap-2 lg:items-end">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-500 cursor-not-allowed shadow-sm"
+                >
+                  <Store size={18} /> Play Store (Coming soon)
+                </button>
+                <a
+                  href={apkDownloadUrl}
+                  download
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-blue-700 hover:to-indigo-700"
+                >
+                  <Download size={18} /> Download APK
+                </a>
+              </div>
+              <p className="text-xs text-gray-500">Direct APK download for Android. Enable installs from your browser if prompted.</p>
             </div>
           </div>
         </div>
