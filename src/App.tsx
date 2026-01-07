@@ -7,6 +7,9 @@ import AIReport from './components/AIReport'
 import AIReportCheckout from './components/AIReportCheckout'
 import PlanCheckout from './components/PlanCheckout'
 import PricingPlans from './components/PricingPlans'
+import PrivacyPolicy from './components/PrivacyPolicy'
+import TermsOfUse from './components/TermsOfUse'
+import RefundPolicy from './components/RefundPolicy'
 
 function App() {
   return (
@@ -18,6 +21,9 @@ function App() {
       <Route path="/report/:deviceId/checkout" element={<AIReportCheckout />} />
       <Route path="/report/:deviceId/ai" element={<AIReport />} />
       <Route path="/checkout" element={<PlanCheckout />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-use" element={<TermsOfUse />} />
+      <Route path="/refund-policy" element={<RefundPolicy />} />
     </Routes>
   )
 }
