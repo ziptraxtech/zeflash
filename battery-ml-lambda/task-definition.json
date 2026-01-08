@@ -1,0 +1,56 @@
+{
+  "family": "battery-ml-task",
+  "taskRoleArn": "arn:aws:iam::070872471952:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::070872471952:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "2048",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "battery-ml-container",
+      "image": "070872471952.dkr.ecr.us-east-1.amazonaws.com/battery-ml:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "BATTERY_TABLE_NAME",
+          "value": "device4"
+        },
+        {
+          "name": "MODEL_DIR",
+          "value": "models"
+        },
+        {
+          "name": "DEVICE_KEY_NAME",
+          "value": "device_id"
+        },
+        {
+          "name": "RESULTS_BUCKET_NAME",
+          "value": "battery-ml-results-070872471952"
+        },
+        {
+          "name": "RESULTS_PREFIX",
+          "value": "battery-reports/"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/battery-ml",
+          "awslogs-create-group": "true",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

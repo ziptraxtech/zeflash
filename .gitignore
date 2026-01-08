@@ -30,3 +30,11 @@ dist-ssr
 .env.test.local
 .env.production.local
 .vercel
+
+# Android signing keys (DO NOT COMMIT!)
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+*.keystore
+*.jks
+zeflash-release.aab

@@ -1,18 +1,28 @@
-FROM public.ecr.aws/lambda/python:3.11-arm64
+FROM python:3.10-slim
 
-# Install build tools for native deps if needed
-RUN yum update -y && \
-    yum groupinstall -y "Development Tools" && \
-    yum install -y mesa-libGL && \
-    yum clean all
+WORKDIR /app
 
-# Install Python dependencies
+# System dependencies for ML & plotting
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgl1 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps first (better layer caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copy Lambda code and models
-COPY lambda_function.py ${LAMBDA_TASK_ROOT}
-COPY models/ ${LAMBDA_TASK_ROOT}/models/
+# Copy application code & models
+COPY . .
 
-# Lambda handler
-CMD ["lambda_function.lambda_handler"]
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
