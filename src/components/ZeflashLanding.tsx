@@ -136,14 +136,34 @@ const ZeflashLanding: React.FC = () => {
       {/* App Download */}
       <section id="app-download" className="py-10 sm:py-12 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-            <div>
-              <p className="text-sm font-semibold text-blue-600">Mobile App</p>
-              <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">Get the Zeflash app</h2>
-              <p className="mt-3 text-gray-700 max-w-2xl">Download the Android APK now. Play Store rollout is on the way.</p>
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-blue-600">Mobile App</p>
+            <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">Get the Zeflash app</h2>
+            <p className="mt-3 text-gray-700 max-w-2xl">Download the Android APK now. Play Store rollout is on the way.</p>
+          </div>
+          
+          {/* QR Code and Download Buttons Side by Side */}
+          <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+            <div className="flex-shrink-0">
+              <div className="relative bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-lg border-2 border-blue-100">
+                <div className="absolute -top-3 -left-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                  Quick Access
+                </div>
+                <img 
+                  src="/My_QR_Code_1-1024.jpeg" 
+                  alt="Scan QR Code to Download Zeflash App" 
+                  className="w-44 h-44 sm:w-52 sm:h-52 object-contain rounded-lg"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2 lg:items-end">
-              <div className="flex flex-wrap gap-3">
+            <div className="flex-1 space-y-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Scan to Download Instantly</h3>
+                <p className="mt-2 text-gray-600 leading-relaxed">
+                  Simply point your phone's camera at the QR code to download and install the Zeflash app in seconds. No app store required!
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 mt-4">
                 <button
                   type="button"
                   disabled
@@ -161,58 +181,32 @@ const ZeflashLanding: React.FC = () => {
                 </a>
               </div>
               <p className="text-xs text-gray-500">Direct APK download for Android. Enable installs from your browser if prompted.</p>
-            </div>
-          </div>
-          
-          {/* QR Code Section */}
-          <div className="mt-12 pt-10 border-t border-gray-200">
-            <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
-              <div className="flex-shrink-0">
-                <div className="relative bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl shadow-lg border-2 border-blue-100">
-                  <div className="absolute -top-3 -left-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                    Quick Access
+              <div className="space-y-3 mt-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle size={16} className="text-green-600" />
                   </div>
-                  <img 
-                    src="/My_QR_Code_1-1024.jpeg" 
-                    alt="Scan QR Code to Download Zeflash App" 
-                    className="w-44 h-44 sm:w-52 sm:h-52 object-contain rounded-lg"
-                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Fast & Easy Installation</p>
+                    <p className="text-xs text-gray-600">Direct download, no registration needed</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900">Scan to Download Instantly</h3>
-                  <p className="mt-2 text-gray-600 leading-relaxed">
-                    Simply point your phone's camera at the QR code to download and install the Zeflash app in seconds. No app store required!
-                  </p>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle size={16} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Works on All Android Devices</p>
+                    <p className="text-xs text-gray-600">Compatible with Android 6.0 and above</p>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle size={16} className="text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Fast & Easy Installation</p>
-                      <p className="text-xs text-gray-600">Direct download, no registration needed</p>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle size={16} className="text-green-600" />
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle size={16} className="text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Works on All Android Devices</p>
-                      <p className="text-xs text-gray-600">Compatible with Android 6.0 and above</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle size={16} className="text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Latest Release Version</p>
-                      <p className="text-xs text-gray-600">Always up-to-date with newest features</p>
-                    </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Latest Release Version</p>
+                    <p className="text-xs text-gray-600">Always up-to-date with newest features</p>
                   </div>
                 </div>
               </div>
