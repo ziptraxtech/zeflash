@@ -1,290 +1,145 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users } from 'lucide-react';
+import Papa from 'papaparse';
 
-interface Station {
-  id: number;
-  name: string;
-  location: string;
-  status: 'Offline' | 'Good' | 'Excellent';
-  monthlyCost: string;
-  lastUpdate: string;
-  color: 'red' | 'green';
-}
+type CsvRow = {
+  'S.No'?: string;
+  'Station ID'?: string;
+  'Station Name'?: string;
+  'EVSE ID'?: string;
+  'Address'?: string;
+  'City'?: string;
+  'State'?: string;
+  'Latitude'?: string | number;
+  'Longitude'?: string | number;
+  'Station Status'?: string;
+  'EVSE Status'?: string;
+  'Protocol'?: string;
+  'Coordinates'?: string;
+  'Map Link'?: string;
+};
+
+type Evse = {
+  evseId: string;
+  status: string;
+  protocol?: string;
+};
+
+type Station = {
+  id: string; // Station ID
+  name: string; // Station Name
+  address: string;
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  stationStatus: string;
+  evses: Evse[];
+};
 
 const ChargingStations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'All' | 'Online' | 'Offline'>('All');
+  const [stations, setStations] = useState<Station[]>([]);
 
-  const stations: Station[] = [
-    {
-      id: 1,
-      name: 'Device 1',
-      location: 'Andheria More',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 2,
-      name: 'Device 2',
-      location: 'Hauz Khas Telephone Centre',
-      status: 'Good',
-      monthlyCost: '₹250',
-      lastUpdate: '2 min ago',
-      color: 'green',
-    },
-    {
-      id: 3,
-      name: 'Device 3',
-      location: 'Qutub Minar',
-      status: 'Excellent',
-      monthlyCost: '₹180',
-      lastUpdate: '1 min ago',
-      color: 'green',
-    },
-    {
-      id: 4,
-      name: 'Device 4',
-      location: 'TB Hospital',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 5,
-      name: 'Device 5',
-      location: 'Hauz Khas Metro Station',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 6,
-      name: 'Device 6',
-      location: 'RK Puram Sector 5',
-      status: 'Good',
-      monthlyCost: '₹320',
-      lastUpdate: '3 min ago',
-      color: 'green',
-    },
-    {
-      id: 7,
-      name: 'Device 7',
-      location: 'IIT',
-      status: 'Excellent',
-      monthlyCost: '₹150',
-      lastUpdate: '2 min ago',
-      color: 'green',
-    },
-    {
-      id: 8,
-      name: 'Device 8',
-      location: 'Pascheel Park',
-      status: 'Good',
-      monthlyCost: '₹290',
-      lastUpdate: '1 min ago',
-      color: 'green',
-    },
-    {
-      id: 9,
-      name: 'Device 9',
-      location: 'Seelampur',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 10,
-      name: 'Device 10',
-      location: 'Shyamlal College',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 11,
-      name: 'Device 11',
-      location: 'Abdul Salaam',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 12,
-      name: 'Device 12',
-      location: 'Majnu Ka Tila',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 13,
-      name: 'Device 13',
-      location: 'C1 Vasant Kunj',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 14,
-      name: 'Device 14',
-      location: 'Jhandewalan',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 15,
-      name: 'Device 15',
-      location: 'Azadpur (Shalimar Bagh)',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 16,
-      name: 'Device 16',
-      location: 'Tis Hazari',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 17,
-      name: 'Device 17',
-      location: 'Pearl Academy',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 18,
-      name: 'Device 18',
-      location: 'Kalra Hospital',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 19,
-      name: 'Device 19',
-      location: 'Gulabi Bagh',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 20,
-      name: 'Device 20',
-      location: 'Sapna Cinema',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 21,
-      name: 'Device 21',
-      location: 'Paschim Vihar West',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 22,
-      name: 'Device 22',
-      location: 'A1 Banquet',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 23,
-      name: 'Device 23',
-      location: 'Kalkaji Mandir',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 24,
-      name: 'Device 24',
-      location: 'Ashram',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 25,
-      name: 'Device 25',
-      location: 'Andheria Mod',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 26,
-      name: 'Device 26',
-      location: 'Madras Hotel',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 27,
-      name: 'Device 27',
-      location: 'Nizamuddin',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-    {
-      id: 28,
-      name: 'Device 28',
-      location: 'Qutub Minar B',
-      status: 'Offline',
-      monthlyCost: 'N/A',
-      lastUpdate: 'Offline',
-      color: 'red',
-    },
-  ];
+  useEffect(() => {
+    const csvPath = '/device_locations_api - Stations.csv';
+    const url = encodeURI(csvPath);
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to fetch CSV: ${res.status}`);
+        return res.text();
+      })
+      .then((text) => {
+        const result = Papa.parse<CsvRow>(text, {
+          header: true,
+          skipEmptyLines: true,
+        });
+
+        const rows: CsvRow[] = (result.data || []).filter((r) => r['Station ID'] && r['EVSE ID']);
+
+        const byStation = new Map<string, Station>();
+        for (const row of rows) {
+          const stationId = String(row['Station ID']!).trim();
+          const name = String(row['Station Name'] || '').trim();
+          const address = String(row['Address'] || '').trim();
+          const city = String(row['City'] || '').trim();
+          const state = String(row['State'] || '').trim();
+
+          const coords = String(row['Coordinates'] || '').split(',');
+          const latStr = row['Latitude'] !== undefined && row['Latitude'] !== '' ? String(row['Latitude']) : (coords[0] ? coords[0].trim() : '');
+          const lngStr = row['Longitude'] !== undefined && row['Longitude'] !== '' ? String(row['Longitude']) : (coords[1] ? coords[1].trim() : '');
+          const lat = Number(latStr);
+          const lng = Number(lngStr);
+
+          const stationStatus = String(row['Station Status'] || '').trim();
+          const evseId = String(row['EVSE ID'] || '').trim();
+          const evseStatus = String(row['EVSE Status'] || '').trim();
+          const protocol = String(row['Protocol'] || '').trim();
+
+          if (!byStation.has(stationId)) {
+            byStation.set(stationId, {
+              id: stationId,
+              name: name || 'Unknown Station',
+              address,
+              city,
+              state,
+              latitude: isNaN(lat) ? 0 : lat,
+              longitude: isNaN(lng) ? 0 : lng,
+              stationStatus: stationStatus || 'Unknown',
+              evses: [],
+            });
+          }
+
+          const st = byStation.get(stationId)!;
+          if (evseId && !st.evses.find((e) => e.evseId === evseId)) {
+            st.evses.push({ evseId, status: evseStatus || 'Unknown', protocol });
+          }
+        }
+
+        const cityOrder = (s: Station) => {
+          const city = s.city.toLowerCase();
+          const state = s.state.toLowerCase();
+          if (city.includes('delhi') || state.includes('delhi')) return 0; // Delhi first
+          if (city.includes('chandigarh') || state.includes('chandigarh')) return 1; // Chandigarh second
+          if (state.includes('uttarakhand') || state.includes('uttrakhand') || city.includes('dehradun')) return 2; // Uttarakhand third
+          return 3; // Others
+        };
+
+        const grouped = Array.from(byStation.values()).sort((a, b) => {
+          const pa = cityOrder(a);
+          const pb = cityOrder(b);
+          if (pa !== pb) return pa - pb;
+          const c = a.city.localeCompare(b.city);
+          return c !== 0 ? c : a.name.localeCompare(b.name);
+        });
+        setStations(grouped);
+      })
+      .catch((err) => {
+        console.error(err);
+        setStations([]);
+      });
+  }, []);
 
   const filteredStations = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
     return stations.filter((station) => {
       const matchesSearch =
-        station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        station.location.toLowerCase().includes(searchTerm.toLowerCase());
+        !term ||
+        station.name.toLowerCase().includes(term) ||
+        station.city.toLowerCase().includes(term) ||
+        station.address.toLowerCase().includes(term);
 
+      const hasAvailable = station.evses.some((e) => e.status.toLowerCase() === 'available');
       const matchesStatus =
         filterStatus === 'All' ||
-        (filterStatus === 'Online' && station.color === 'green') ||
-        (filterStatus === 'Offline' && station.color === 'red');
+        (filterStatus === 'Online' && hasAvailable) ||
+        (filterStatus === 'Offline' && !hasAvailable);
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, filterStatus]);
+  }, [searchTerm, filterStatus, stations]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
@@ -326,7 +181,9 @@ const ChargingStations: React.FC = () => {
               <h3 className="text-sm font-semibold text-blue-700">Online Stations</h3>
               <Zap className="w-5 h-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-extrabold text-blue-900">5</p>
+            <p className="text-3xl font-extrabold text-blue-900">{
+              stations.filter((s) => s.evses.some((e) => e.status.toLowerCase() === 'available')).length
+            }</p>
             <p className="text-xs text-blue-600 mt-1">Ready to serve you</p>
           </div>
           <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-2xl p-6">
@@ -367,10 +224,11 @@ const ChargingStations: React.FC = () => {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-5 py-2 rounded-xl font-semibold transition-all border text-base shadow-sm ${
+                aria-pressed={filterStatus === status}
+                className={`px-4 py-2 rounded-full font-medium transition-colors border text-sm ${
                   filterStatus === status
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-blue-600 shadow-lg scale-105'
-                    : 'bg-gray-50 text-blue-700 border-blue-200 hover:bg-blue-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'
                 }`}
               >
                 {status}
@@ -387,7 +245,7 @@ const ChargingStations: React.FC = () => {
         {/* Stations Grid */}
         {filteredStations.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
               {filteredStations.map((station) => (
                 <div
                   key={station.id}
@@ -401,12 +259,25 @@ const ChargingStations: React.FC = () => {
                     {/* Station Name (location louder than device id) */}
                     <div className="mb-2.5">
                       <h3 className="font-bold text-lg text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
-                        {station.location}
+                        {station.name}
                       </h3>
                       <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
                         <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{station.name}</span>
+                        <span className="truncate">{station.city}{station.city && station.state ? ', ' : ''}{station.state}</span>
                       </div>
+                      {station.latitude && station.longitude ? (
+                        <div className="mt-2">
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${station.latitude},${station.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-blue-300 text-xs font-semibold text-blue-700 bg-white hover:bg-blue-50"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            Open in Google Maps
+                          </a>
+                        </div>
+                      ) : null}
                     </div>
 
                     {/* Features */}
@@ -422,28 +293,60 @@ const ChargingStations: React.FC = () => {
                     </div>
 
                     {/* Chargers at this station */}
-                    <div className="mt-2 space-y-2.5 border-t border-blue-100 pt-3">
-                      {['A', 'B', 'C'].map((label) => (
+                    <div className="mt-2 space-y-3 border-t border-blue-100 pt-3">
+                      {station.evses.map((e, idx) => (
                         <div
-                          key={label}
-                          className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/70 px-3.5 py-2.5"
+                          key={e.evseId || idx}
+                          className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-4 w-full overflow-hidden"
                         >
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                              {label}
+                          {/* Charger header */}
+                          <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${
+                              e.status.toLowerCase() === 'available'
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                : e.status.toLowerCase() === 'in use'
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-500'
+                                : 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                            }`}>
+                              {idx + 1}
                             </div>
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">Device {label}</p>
-                              <p className="text-[11px] text-gray-500">Fast charger at this station</p>
+                            <div className="min-w-0">
+                              <p className="text-base font-extrabold text-gray-900">Charger {idx + 1}</p>
+                              <p className="text-[12px] text-gray-600 truncate">EVSE ID: {e.evseId}</p>
+                              <p className="text-[11px] text-gray-500">Status: {e.status}{e.protocol ? ` • ${e.protocol}` : ''}</p>
                             </div>
                           </div>
-                          <Link
-                            to={`/report/${station.id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-sm"
-                          >
-                            <Zap className="w-3 h-3" />
-                            View report
-                          </Link>
+
+                          {/* Ports list */}
+                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {[1, 2, 3].map((port) => (
+                              <div
+                                key={`${e.evseId}-port-${port}`}
+                                className="flex flex-col gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2 overflow-hidden"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className={`w-2.5 h-2.5 rounded-full ${
+                                    e.status.toLowerCase() === 'available'
+                                      ? 'bg-green-500'
+                                      : e.status.toLowerCase() === 'in use'
+                                      ? 'bg-amber-500'
+                                      : 'bg-blue-400'
+                                  }`} />
+                                  <p className="text-sm font-semibold text-gray-900 truncate">Port {port}</p>
+                                  <p className="text-[11px] text-gray-500 hidden sm:block">• {e.protocol || 'ocpp1.6'}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border border-blue-300 text-blue-700 bg-white opacity-60 cursor-not-allowed w-full"
+                                  aria-disabled="true"
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  View report
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
