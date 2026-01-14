@@ -16,13 +16,20 @@ import json
 import argparse
 from datetime import datetime, timezone
 from typing import Optional, Tuple, Dict
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
-import requests
 import boto3
 import numpy as np
 import pandas as pd
 import joblib
-import tensorflow as tf
+try:
+    import tensorflow as tf
+    TF_AVAILABLE = True
+except Exception as e:
+    print(f"⚠ TensorFlow not available: {e}")
+    TF_AVAILABLE = False
+    tf = None
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -76,16 +83,19 @@ def build_autoencoder(input_dim=14):
     model.compile(optimizer='adam', loss='mse')
     return model
 
-print("Building autoencoder architecture...")
-autoencoder = build_autoencoder(14)
+if TF_AVAILABLE:
+    print("Building autoencoder architecture...")
+    autoencoder = build_autoencoder(14)
 
-print("Loading weights from saved model...")
-try:
-    # Try to load just the weights
-    autoencoder.load_weights(AUTOENCODER_PATH)
-except Exception as e:
-    print(f"⚠ Could not load weights from HDF5: {str(e)}")
-    print("Will use model for inference only without pre-trained weights")
+    print("Loading weights from saved model...")
+    try:
+        # Try to load just the weights
+        autoencoder.load_weights(AUTOENCODER_PATH)
+    except Exception as e:
+        print(f"⚠ Could not load weights from HDF5: {str(e)}")
+        print("Will use model for inference only without pre-trained weights")
+else:
+    autoencoder = None
 
 scaler = joblib.load(SCALER_PATH)
 iso_forest = joblib.load(ISOFOREST_PATH)
@@ -109,8 +119,15 @@ print("✓ Models loaded successfully\n")
 
 # ============ FUNCTIONS ============
 
-def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: int = 60) -> list:
-    """Fetch battery data from the active API."""
+def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: int = 10, auth_scheme: str = "Bearer") -> list:
+    """Fetch battery data from the active API.
+
+    Parameters:
+    - api_url: Fully-qualified URL to call
+    - auth_token: Token string without scheme unless already prefixed (e.g. "abc" or "Basic abc...")
+    - limit: Number of records to request (will override any limit in URL)
+    - auth_scheme: "Bearer" or "Basic"; ignored if auth_token already includes a scheme
+    """
     # Update limit parameter in URL
     if '&limit=' in api_url:
         api_url = api_url.rsplit('&limit=', 1)[0] + f'&limit={limit}'
@@ -124,11 +141,15 @@ def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: i
     try:
         headers = {}
         if auth_token:
-            headers['Authorization'] = f'Bearer {auth_token}'
+            # If token already includes scheme, use as-is; else apply provided scheme
+            if any(auth_token.strip().startswith(prefix) for prefix in ("Bearer ", "Basic ")):
+                headers['Authorization'] = auth_token.strip()
+            else:
+                headers['Authorization'] = f'{auth_scheme} {auth_token.strip()}'
         
-        response = requests.get(api_url, headers=headers, timeout=30)
-        response.raise_for_status()
-        data = response.json()
+        req = Request(api_url, headers=headers)
+        with urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode('utf-8'))
         
         # Handle different response formats
         if isinstance(data, dict):
@@ -460,8 +481,22 @@ def upload_to_s3(buf: io.BytesIO, device_id: str, result: Dict) -> Tuple[str, st
     return key, url
 
 
+def build_cms_time_lapsed_url(evse_id: str, connector_id: int = 1, page: int = 1, limit: int = 10,
+                              role: str = "Admin", operator: str = "All") -> str:
+    """Construct the CMS time_lapsed API URL for a specific EVSE and connector.
+
+    Example endpoint:
+    https://cms.charjkaro.in/commands/secure/api/v1/get/charger/time_lapsed?role=Admin&operator=All&evse_id=032300130C03064&connector_id=1&page=1&limit=10
+    """
+    base = "https://cms.charjkaro.in/commands/secure/api/v1/get/charger/time_lapsed"
+    return (
+        f"{base}?role={role}&operator={operator}"
+        f"&evse_id={evse_id}&connector_id={connector_id}&page={page}&limit={limit}"
+    )
+
+
 def run_inference_pipeline(device_id: str, api_url: Optional[str] = None, 
-                          auth_token: Optional[str] = None, limit: int = 60) -> Dict:
+                          auth_token: Optional[str] = None, limit: int = 10, auth_scheme: str = "Bearer") -> Dict:
     """Main inference pipeline."""
     print("=" * 70)
     print(f"BATTERY ML INFERENCE PIPELINE - {device_id}")
@@ -476,7 +511,19 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
         else:
             raise ValueError(f"Device {device_id} not found in config")
 
-    items = fetch_data_from_api(api_url, auth_token, limit)
+    # If using CMS URL, derive a friendly label for S3/device_id
+    try:
+        if "cms.charjkaro.in" in api_url:
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(api_url).query)
+            evse = qs.get("evse_id", [None])[0]
+            conn = qs.get("connector_id", [None])[0]
+            if evse:
+                device_id = f"{evse}{('_' + conn) if conn else ''}"
+    except Exception:
+        pass
+
+    items = fetch_data_from_api(api_url, auth_token, limit, auth_scheme)
 
     # Step 2: Build features
     X_raw, base_stats = build_features(items)
@@ -487,13 +534,17 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
     # Step 3: Scale
     X_scaled = scaler.transform(X_raw)
 
-    # Step 4: Autoencoder inference
-    print("Running autoencoder...")
-    recon = autoencoder.predict(X_scaled, verbose=0)
-    recon_errors = np.mean(np.square(X_scaled - recon), axis=1)
-    print(f"✓ Reconstruction error range: [{recon_errors.min():.4f}, {recon_errors.max():.4f}]")
-    print(f"  - Threshold: {ae_threshold:.4f}")
-    print(f"  - Anomalies detected: {np.sum(recon_errors > ae_threshold)}/{len(recon_errors)}\n")
+    # Step 4: Autoencoder inference (optional)
+    if TF_AVAILABLE and autoencoder is not None:
+        print("Running autoencoder...")
+        recon = autoencoder.predict(X_scaled, verbose=0)
+        recon_errors = np.mean(np.square(X_scaled - recon), axis=1)
+        print(f"✓ Reconstruction error range: [{recon_errors.min():.4f}, {recon_errors.max():.4f}]")
+        print(f"  - Threshold: {ae_threshold:.4f}")
+        print(f"  - Anomalies detected: {np.sum(recon_errors > ae_threshold)}/{len(recon_errors)}\n")
+    else:
+        print("TensorFlow not available; skipping autoencoder. Using zeros for reconstruction error.")
+        recon_errors = np.zeros(X_scaled.shape[0])
 
     # Step 5: Isolation Forest
     print("Running isolation forest...")
@@ -545,9 +596,14 @@ if __name__ == "__main__":
     parser.add_argument("device_id", nargs="?", default="device4", 
                        help="Device ID (default: device4)")
     parser.add_argument("--api-url", help="Custom API URL")
-    parser.add_argument("--auth-token", help="Bearer token for API authentication")
-    parser.add_argument("--limit", type=int, default=60,
-                       help="Number of latest documents to fetch (default: 60)")
+    parser.add_argument("--auth-token", help="API auth token (omit scheme or include 'Bearer ' / 'Basic ' prefix)")
+    parser.add_argument("--auth-scheme", choices=["Bearer", "Basic"], default="Bearer",
+                       help="Auth scheme when token has no prefix (default: Bearer)")
+    parser.add_argument("--evse-id", help="EVSE ID to build CMS URL (e.g. 032300130C03064)")
+    parser.add_argument("--connector-id", type=int, default=1, help="Connector ID (default: 1)")
+    parser.add_argument("--page", type=int, default=1, help="Pagination page (default: 1)")
+    parser.add_argument("--limit", type=int, default=10,
+                       help="Number of latest documents to fetch (default: 10)")
     parser.add_argument("--bucket", help="Override S3 bucket")
     
     args = parser.parse_args()
@@ -555,8 +611,32 @@ if __name__ == "__main__":
     if args.bucket:
         S3_BUCKET = args.bucket
     
+    # Use env var for token if not provided
+    if not args.auth_token:
+        env_token = os.environ.get("CMS_BASIC_TOKEN")
+        if env_token:
+            args.auth_token = env_token
+            # Default to Basic when token comes from CMS_BASIC_TOKEN
+            args.auth_scheme = "Basic"
+
+    # Build API URL from EVSE/connector if not provided
+    api_url = args.api_url
+    if not api_url and args.evse_id:
+        api_url = build_cms_time_lapsed_url(
+            evse_id=args.evse_id,
+            connector_id=args.connector_id,
+            page=args.page,
+            limit=args.limit,
+        )
+
     try:
-        result = run_inference_pipeline(args.device_id, args.api_url, args.auth_token, args.limit)
+        result = run_inference_pipeline(
+            args.device_id,
+            api_url,
+            args.auth_token,
+            args.limit,
+            args.auth_scheme,
+        )
     except Exception as e:
         print(f"\n❌ ERROR: {str(e)}")
         import traceback

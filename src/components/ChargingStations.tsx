@@ -42,13 +42,16 @@ const ChargingStations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'All' | 'Online' | 'Offline'>('All');
   const [stations, setStations] = useState<Station[]>([]);
-  const [reportModal, setReportModal] = useState<{ open: boolean; evseId: string; connectorId: number; data: any; loading: boolean; error: string }>({
+  const [reportModal, setReportModal] = useState<{ open: boolean; evseId: string; connectorId: number; data: any; loading: boolean; error: string; aiImageUrl?: string; aiLoading?: boolean; aiError?: string }>({
     open: false,
     evseId: '',
     connectorId: 1,
     data: null,
     loading: false,
-    error: ''
+    error: '',
+    aiImageUrl: undefined,
+    aiLoading: false,
+    aiError: ''
   });
 
   const TOKEN_ENDPOINT = 'https://cms.charjkaro.in/admin/api/v1/zipbolt/token';
@@ -84,6 +87,49 @@ const ChargingStations: React.FC = () => {
     } catch (err) {
       console.error('Fetch error:', err);
       setReportModal((prev) => ({ ...prev, error: (err as Error).message, loading: false }));
+    }
+  };
+
+  const fetchAIHealthReport = async (evseId: string) => {
+    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '' }));
+    try {
+      // Get fresh token
+      const tokenRes = await fetch(TOKEN_ENDPOINT);
+      if (!tokenRes.ok) throw new Error('Failed to get authorization token');
+      const tokenData = await tokenRes.json();
+      const token = tokenData.token;
+
+      // Call inference pipeline via Lambda
+      const response = await fetch('/.netlify/functions/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evse_id: evseId,
+          api_url: `${API_BASE_URL}?role=Admin&operator=All&evse_id=${evseId}&connector_id=1&page=1&limit=60`,
+          auth_token: token,
+          limit: 60
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate AI report: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      setReportModal((prev) => ({ 
+        ...prev, 
+        aiImageUrl: result.image_url || result.s3_url, 
+        aiLoading: false,
+        aiError: result.error ? result.error : ''
+      }));
+    } catch (err) {
+      console.error('AI Report error:', err);
+      setReportModal((prev) => ({ 
+        ...prev, 
+        aiError: (err as Error).message, 
+        aiLoading: false 
+      }));
     }
   };
 
@@ -513,6 +559,50 @@ const ChargingStations: React.FC = () => {
                 </div>
               ) : reportModal.data ? (
                 <div className="space-y-4">
+                  {/* Get AI Health Report Button */}
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => fetchAIHealthReport(reportModal.evseId)}
+                      disabled={reportModal.aiLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all duration-300 disabled:cursor-not-allowed"
+                    >
+                      {reportModal.aiLoading ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4" />
+                          Get AI Health Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* AI Health Report Error */}
+                  {reportModal.aiError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-800 font-semibold">AI Report Error</p>
+                      <p className="text-red-600 text-sm mt-1">{reportModal.aiError}</p>
+                    </div>
+                  )}
+
+                  {/* AI Health Report Image */}
+                  {reportModal.aiImageUrl && !reportModal.aiLoading && (
+                    <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                      <p className="text-gray-700 font-semibold mb-3">AI Battery Health Analysis</p>
+                      <img 
+                        src={reportModal.aiImageUrl} 
+                        alt="AI Health Report" 
+                        className="w-full h-auto rounded-lg shadow-md border border-gray-100"
+                        onError={(e) => {
+                          console.error('Image failed to load:', reportModal.aiImageUrl);
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                  )}
                   {reportModal.data.data && reportModal.data.data.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm border-collapse">
