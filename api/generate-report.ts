@@ -40,14 +40,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Use AWS Lambda invoke (assuming it's exposed via API Gateway or direct invoke)
     // For now, let's construct a direct call to the inference endpoint
-    const lambdaResponse = await fetch(
+    let lambdaResponse: any = await fetch(
       'https://your-lambda-api-gateway-url/generate-report',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(lambdaPayload)
       }
-    ).catch(async (error) => {
+    ).catch(async (fetchError) => {
       console.log('Lambda direct call failed, trying local inference...');
       
       // Fallback: Try to run locally if available
@@ -96,16 +96,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         throw new Error('Could not extract S3 URL from inference output');
       } catch (localError: any) {
         console.error('Local inference failed:', localError.message);
-        throw localError;
+        return {
+          ok: false,
+          status: 500,
+          text: async () => JSON.stringify({ error: localError.message })
+        };
       }
     });
 
     if (!lambdaResponse.ok) {
-      const errorText = await lambdaResponse.text();
+      const errorText = typeof lambdaResponse.text === 'function' 
+        ? await lambdaResponse.text() 
+        : JSON.stringify({ error: 'Unknown error' });
       console.error('Lambda error response:', errorText);
-      return res.status(500).json({
+      return res.status(lambdaResponse.status || 500).json({
         success: false,
-        error: `Lambda error: ${lambdaResponse.status} - ${errorText.substring(0, 200)}`
+        error: `Error: ${errorText.substring(0, 200)}`
       });
     }
 
