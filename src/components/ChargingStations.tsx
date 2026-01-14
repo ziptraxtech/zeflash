@@ -103,63 +103,55 @@ const ChargingStations: React.FC = () => {
 
       console.log('Token obtained, calling generate-report API...');
 
-      // Try to call the API endpoint (works on Vercel production)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+
+      const response = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evse_id: evseId,
+          connector_id: connectorId,
+          auth_token: token
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      
+      console.log('API Response Status:', response.status);
+      const responseText = await response.text();
+      console.log('API Response Text:', responseText.substring(0, 500));
+
+      let result;
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
-
-        const response = await fetch('/api/generate-report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            evse_id: evseId,
-            connector_id: connectorId,
-            auth_token: token
-          }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        
-        console.log('API Response Status:', response.status);
-        const responseText = await response.text();
-        console.log('API Response Text:', responseText);
-
-        if (response.ok) {
-          let result;
-          try {
-            result = JSON.parse(responseText);
-          } catch (parseError) {
-            throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
-          }
-          
-          if (result.success && result.image_url) {
-            console.log('Success! Image URL:', result.image_url);
-            setReportModal((prev) => ({ 
-              ...prev, 
-              aiImageUrl: result.image_url,
-              aiLoading: false,
-              aiError: ''
-            }));
-            return;
-          }
-        }
-      } catch (apiError) {
-        console.warn('API endpoint error (expected in development):', apiError);
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
       }
 
-      // If API not available, show informational message
-      setReportModal((prev) => ({ 
-        ...prev, 
-        aiError: 'AI report generation works on the deployed Vercel app. The feature requires running the Python inference pipeline which is available after deployment.', 
-        aiLoading: false 
-      }));
+      if (result.success && result.image_url) {
+        console.log('Success! Image URL:', result.image_url);
+        setReportModal((prev) => ({ 
+          ...prev, 
+          aiImageUrl: result.image_url,
+          aiLoading: false,
+          aiError: ''
+        }));
+        return;
+      }
+
+      throw new Error(result.error || 'No image URL returned from pipeline');
       
     } catch (err: any) {
       console.error('AI Report error:', err);
+      let errorMessage = (err as Error).message;
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timeout - inference pipeline took too long (>5 minutes). Please try again.';
+      }
       setReportModal((prev) => ({ 
         ...prev, 
-        aiError: (err as Error).message, 
+        aiError: errorMessage, 
         aiLoading: false 
       }));
     }
