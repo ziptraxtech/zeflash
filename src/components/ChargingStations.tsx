@@ -557,6 +557,20 @@ const ChargingStations: React.FC = () => {
                   <p className="text-red-800 font-semibold">Error loading report</p>
                   <p className="text-red-600 text-sm mt-1">{reportModal.error}</p>
                 </div>
+              ) : reportModal.data?.status === 'report_getting_ready' || reportModal.data?.status === 'REPORT_GETTING_READY' ? (
+                <div className="bg-blue-50 border border-blue-300 rounded-lg p-6">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="animate-spin h-8 w-8 border-3 border-blue-400 border-t-blue-600 rounded-full"></div>
+                    <p className="text-blue-900 font-semibold text-lg">Report is Getting Ready</p>
+                    <p className="text-blue-700 text-sm text-center">Collecting data points for the last 20 minutes...</p>
+                    <p className="text-blue-600 text-xs text-center mt-2">The charging report will be available once sufficient data is collected.</p>
+                  </div>
+                </div>
+              ) : reportModal.data?.status === 'no_charging' || reportModal.data?.status === 'NO_CHARGING' ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800 font-semibold">No Charging Active</p>
+                  <p className="text-yellow-700 text-sm mt-1">This connector is not currently charging. Data will be available once charging begins.</p>
+                </div>
               ) : reportModal.data ? (
                 <div className="space-y-4">
                   {/* Get AI Health Report Button */}
