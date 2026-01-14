@@ -10,10 +10,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
+      '/api/lambda': {
+        target: 'https://oxpqujwper7tjoz3an54ow7gae0jphwq.lambda-url.us-east-1.on.aws',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api\/lambda/, '')
       }
     }
   }

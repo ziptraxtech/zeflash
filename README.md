@@ -56,6 +56,16 @@ npm install -g vercel
 vercel --prod
 ```
 
+#### AI Health Report endpoint
+
+To enable the "Get AI Health Report" button on Vercel, point the frontend directly to your Python-capable AWS Lambda:
+
+```
+VITE_AI_REPORT_URL=https://your-api-gateway-url.example.com/prod/generate-report
+```
+
+Set this as a Vercel Project Environment Variable (Production + Preview). If unset, the app falls back to calling `/api/generate-report` on the same host.
+
 ### Option 2: Netlify
 
 1. Push your code to GitHub

@@ -142,7 +142,7 @@ def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: i
         headers = {}
         if auth_token:
             # If token already includes scheme, use as-is; else apply provided scheme
-            if any(auth_token.strip().startswith(prefix) for prefix in ("Bearer ", "Basic ")):
+            if any(auth_token.strip().startswith(prefix) for prefix in ("Bearer ", "Basic ", "basic ")):
                 headers['Authorization'] = auth_token.strip()
             else:
                 headers['Authorization'] = f'{auth_scheme} {auth_token.strip()}'
@@ -596,8 +596,8 @@ if __name__ == "__main__":
     parser.add_argument("device_id", nargs="?", default="device4", 
                        help="Device ID (default: device4)")
     parser.add_argument("--api-url", help="Custom API URL")
-    parser.add_argument("--auth-token", help="API auth token (omit scheme or include 'Bearer ' / 'Basic ' prefix)")
-    parser.add_argument("--auth-scheme", choices=["Bearer", "Basic"], default="Bearer",
+    parser.add_argument("--auth-token", help="API auth token (omit scheme or include 'Bearer ' / 'Basic ' / 'basic ' prefix)")
+    parser.add_argument("--auth-scheme", choices=["Bearer", "Basic", "basic"], default="Bearer",
                        help="Auth scheme when token has no prefix (default: Bearer)")
     parser.add_argument("--evse-id", help="EVSE ID to build CMS URL (e.g. 032300130C03064)")
     parser.add_argument("--connector-id", type=int, default=1, help="Connector ID (default: 1)")

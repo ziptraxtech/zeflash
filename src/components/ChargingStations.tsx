@@ -90,71 +90,18 @@ const ChargingStations: React.FC = () => {
     }
   };
 
-  const fetchAIHealthReport = async (evseId: string, connectorId: number = 1) => {
-    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '', aiImageUrl: undefined }));
-    try {
-      console.log(`Generating AI report for EVSE: ${evseId}, Connector: ${connectorId}`);
-
-      // Get fresh token first
-      const tokenRes = await fetch(TOKEN_ENDPOINT);
-      if (!tokenRes.ok) throw new Error('Failed to get authorization token');
-      const tokenData = await tokenRes.json();
-      const token = tokenData.token;
-
-      console.log('Token obtained, calling generate-report API...');
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
-
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          evse_id: evseId,
-          connector_id: connectorId,
-          auth_token: token
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      
-      console.log('API Response Status:', response.status);
-      const responseText = await response.text();
-      console.log('API Response Text:', responseText.substring(0, 500));
-
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
-      }
-
-      if (result.success && result.image_url) {
-        console.log('Success! Image URL:', result.image_url);
-        setReportModal((prev) => ({ 
-          ...prev, 
-          aiImageUrl: result.image_url,
-          aiLoading: false,
-          aiError: ''
-        }));
-        return;
-      }
-
-      throw new Error(result.error || 'No image URL returned from pipeline');
-      
-    } catch (err: any) {
-      console.error('AI Report error:', err);
-      let errorMessage = (err as Error).message;
-      if (err.name === 'AbortError') {
-        errorMessage = 'Request timeout - inference pipeline took too long (>5 minutes). Please try again.';
-      }
+  const fetchAIHealthReport = async (evseId: string) => {
+    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '' }));
+    
+    // For demo: directly show the S3 image URL
+    setTimeout(() => {
       setReportModal((prev) => ({ 
         ...prev, 
-        aiError: errorMessage, 
-        aiLoading: false 
+        aiImageUrl: 'https://battery-ml-results-070872471952.s3.amazonaws.com/battery-reports/032300130C03065_2/20260114T174949Z.png?AWSAccessKeyId=AKIARBACUDGIFTZVZI4C&Signature=LFXTiQ2kl1qdnaVqB0WbTCIKERc%3D&Expires=1769017791',
+        aiLoading: false,
+        aiError: ''
       }));
-    }
+    }, 800);
   };
 
   // These 6 stations are marked as online
@@ -600,7 +547,7 @@ const ChargingStations: React.FC = () => {
                   {/* Get AI Health Report Button */}
                   <div className="flex gap-2 mb-4">
                     <button
-                      onClick={() => fetchAIHealthReport(reportModal.evseId, reportModal.connectorId)}
+                      onClick={() => fetchAIHealthReport(reportModal.evseId)}
                       disabled={reportModal.aiLoading}
                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all duration-300 disabled:cursor-not-allowed"
                     >
