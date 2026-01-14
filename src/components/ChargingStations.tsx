@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users } from 'lucide-react';
+import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users, X } from 'lucide-react';
 import Papa from 'papaparse';
 
 type CsvRow = {
@@ -42,6 +42,66 @@ const ChargingStations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'All' | 'Online' | 'Offline'>('All');
   const [stations, setStations] = useState<Station[]>([]);
+  const [reportModal, setReportModal] = useState<{ open: boolean; evseId: string; connectorId: number; data: any; loading: boolean; error: string }>({
+    open: false,
+    evseId: '',
+    connectorId: 1,
+    data: null,
+    loading: false,
+    error: ''
+  });
+
+  const TOKEN_ENDPOINT = 'https://cms.charjkaro.in/admin/api/v1/zipbolt/token';
+  const API_BASE_URL = 'https://cms.charjkaro.in/commands/secure/api/v1/get/charger/time_lapsed';
+
+  const fetchChargerReport = async (evseId: string, connectorId: number) => {
+    setReportModal({ open: true, evseId, connectorId, data: null, loading: true, error: '' });
+    try {
+      // First, get a fresh token
+      const tokenRes = await fetch(TOKEN_ENDPOINT);
+      if (!tokenRes.ok) {
+        throw new Error('Failed to get authorization token');
+      }
+      const tokenData = await tokenRes.json();
+      const token = tokenData.token;
+
+      // Then, use the token to fetch charger report
+      const url = `${API_BASE_URL}?role=Admin&operator=All&evse_id=${evseId}&connector_id=${connectorId}&page=1&limit=10`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `basic ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
+      }
+      const data = await response.json();
+      setReportModal((prev) => ({ ...prev, data, loading: false }));
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setReportModal((prev) => ({ ...prev, error: (err as Error).message, loading: false }));
+    }
+  };
+
+  // These 6 stations are marked as online
+  const onlineStationNames = [
+    'Hauz khas telephone exchange',
+    'IIT',
+    'Qutub Minar',
+    'Rk Puram',
+    'NH8 7 Panchsheel Park Metro Station Gate No1',
+    'ANDHERIA MOD'
+  ];
+
+  const isStationOnline = (stationName: string) => {
+    return onlineStationNames.some((name) => 
+      stationName.toLowerCase().includes(name.toLowerCase())
+    );
+  };
 
   useEffect(() => {
     const csvPath = '/device_locations_api - Stations.csv';
@@ -114,6 +174,8 @@ const ChargingStations: React.FC = () => {
           const c = a.city.localeCompare(b.city);
           return c !== 0 ? c : a.name.localeCompare(b.name);
         });
+
+        // Show all stations from CSV
         setStations(grouped);
       })
       .catch((err) => {
@@ -131,11 +193,11 @@ const ChargingStations: React.FC = () => {
         station.city.toLowerCase().includes(term) ||
         station.address.toLowerCase().includes(term);
 
-      const hasAvailable = station.evses.some((e) => e.status.toLowerCase() === 'available');
+      const stationOnline = isStationOnline(station.name);
       const matchesStatus =
         filterStatus === 'All' ||
-        (filterStatus === 'Online' && hasAvailable) ||
-        (filterStatus === 'Offline' && !hasAvailable);
+        (filterStatus === 'Online' && stationOnline) ||
+        (filterStatus === 'Offline' && !stationOnline);
 
       return matchesSearch && matchesStatus;
     });
@@ -182,7 +244,7 @@ const ChargingStations: React.FC = () => {
               <Zap className="w-5 h-5 text-blue-600" />
             </div>
             <p className="text-3xl font-extrabold text-blue-900">{
-              stations.filter((s) => s.evses.some((e) => e.status.toLowerCase() === 'available')).length
+              stations.filter((s) => isStationOnline(s.name)).length
             }</p>
             <p className="text-xs text-blue-600 mt-1">Ready to serve you</p>
           </div>
@@ -246,21 +308,28 @@ const ChargingStations: React.FC = () => {
         {filteredStations.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-              {filteredStations.map((station) => (
+              {filteredStations.map((station) => {
+                const stationOnline = isStationOnline(station.name);
+                return (
                 <div
                   key={station.id}
                   className="bg-white rounded-2xl border-2 border-blue-100 shadow-lg hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden flex flex-col min-h-[280px] group"
                 >
                   {/* Status Badge */}
-                  <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500" />
+                  <div className={`h-1.5 ${stationOnline ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500' : 'bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600'}`} />
 
                   {/* Content */}
                   <div className="p-6 pt-5 flex-1 flex flex-col">
-                    {/* Station Name (location louder than device id) */}
+                    {/* Station Name with status indicator */}
                     <div className="mb-2.5">
-                      <h3 className="font-bold text-lg text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
-                        {station.name}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
+                          {station.name}
+                        </h3>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${stationOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {stationOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
                       <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
                         <MapPin className="w-3.5 h-3.5 text-blue-500" />
                         <span className="truncate">{station.city}{station.city && station.state ? ', ' : ''}{station.state}</span>
@@ -317,32 +386,34 @@ const ChargingStations: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Ports list */}
-                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            {[1, 2, 3].map((port) => (
+                          {/* Connectors list */}
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            {[1, 2, 3].map((connector) => (
                               <div
-                                key={`${e.evseId}-port-${port}`}
-                                className="flex flex-col gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2 overflow-hidden"
+                                key={`${e.evseId}-connector-${connector}`}
+                                className="flex flex-col gap-2 rounded-lg border border-blue-100 bg-white px-2.5 py-2.5"
                               >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div className={`w-2.5 h-2.5 rounded-full ${
-                                    e.status.toLowerCase() === 'available'
-                                      ? 'bg-green-500'
-                                      : e.status.toLowerCase() === 'in use'
-                                      ? 'bg-amber-500'
-                                      : 'bg-blue-400'
-                                  }`} />
-                                  <p className="text-sm font-semibold text-gray-900 truncate">Port {port}</p>
-                                  <p className="text-[11px] text-gray-500 hidden sm:block">• {e.protocol || 'ocpp1.6'}</p>
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${
+                                      e.status.toLowerCase() === 'available'
+                                        ? 'bg-green-500'
+                                        : e.status.toLowerCase() === 'in use'
+                                        ? 'bg-amber-500'
+                                        : 'bg-blue-400'
+                                    }`} />
+                                    <p className="text-xs font-bold text-gray-900">C. {connector}</p>
+                                  </div>
+                                  <p className="text-[10px] text-gray-500">{e.protocol || 'ocpp1.6'}</p>
                                 </div>
                                 <button
                                   type="button"
-                                  disabled
-                                  className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border border-blue-300 text-blue-700 bg-white opacity-60 cursor-not-allowed w-full"
-                                  aria-disabled="true"
+                                  onClick={() => fetchChargerReport(e.evseId, connector)}
+                                  className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold border border-blue-300 text-blue-700 bg-white hover:bg-blue-50"
+                                  aria-label={`View report for connector ${connector}`}
                                 >
-                                  <Zap className="w-3 h-3" />
-                                  View report
+                                  <Zap className="w-2.5 h-2.5" />
+                                  Report
                                 </button>
                               </div>
                             ))}
@@ -352,7 +423,8 @@ const ChargingStations: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
 
             {/* Info Section */}
@@ -406,6 +478,125 @@ const ChargingStations: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Report Modal */}
+      {reportModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-blue-100 p-6 sticky top-0 bg-white">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Charger Report</h2>
+                <p className="text-sm text-gray-600 mt-1">EVSE ID: {reportModal.evseId} • Connector: {reportModal.connectorId}</p>
+              </div>
+              <button
+                onClick={() => setReportModal({ ...reportModal, open: false })}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {reportModal.loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin">
+                    <Zap className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="ml-3 text-gray-600">Loading report...</p>
+                </div>
+              ) : reportModal.error ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 font-semibold">Error loading report</p>
+                  <p className="text-red-600 text-sm mt-1">{reportModal.error}</p>
+                </div>
+              ) : reportModal.data ? (
+                <div className="space-y-4">
+                  {reportModal.data.data && reportModal.data.data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-200 bg-gray-50">
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Connector ID</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Voltage (V)</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Power (W)</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Current (A)</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Energy (Wh)</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Temperature (°C)</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Created At</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportModal.data.data.map((item: any, idx: number) => {
+                            let connectorId = '-';
+                            let voltage = '-';
+                            let power = '-';
+                            let current = '-';
+                            let energy = '-';
+                            let temperature = '-';
+                            
+                            if (item.payload && Array.isArray(item.payload)) {
+                              for (const p of item.payload) {
+                                if (p.Key === 'connectorId') {
+                                  connectorId = p.Value;
+                                }
+                                if (p.Key === 'meterValue' && p.Value && Array.isArray(p.Value)) {
+                                  const meterArray = p.Value[0];
+                                  if (meterArray && Array.isArray(meterArray)) {
+                                    for (const meter of meterArray) {
+                                      if (meter.Key === 'sampledValue' && meter.Value && Array.isArray(meter.Value)) {
+                                        // sampledValue is an array of arrays
+                                        for (const sample of meter.Value) {
+                                          if (Array.isArray(sample)) {
+                                            let measurand = '';
+                                            let value = '';
+                                            
+                                            for (const item of sample) {
+                                              if (item.Key === 'measurand') measurand = item.Value;
+                                              if (item.Key === 'value') value = item.Value;
+                                            }
+                                            
+                                            if (measurand === 'Voltage') voltage = value;
+                                            else if (measurand === 'Power.Active.Import') power = value;
+                                            else if (measurand === 'Current.Import') current = value;
+                                            else if (measurand === 'Energy.Active.Import.Register') energy = value;
+                                            else if (measurand === 'Temperature') temperature = value;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            
+                            return (
+                              <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50">
+                                <td className="px-4 py-2 text-gray-900 font-semibold">{connectorId}</td>
+                                <td className="px-4 py-2 text-gray-700">{voltage}</td>
+                                <td className="px-4 py-2 text-gray-700">{power}</td>
+                                <td className="px-4 py-2 text-gray-700">{current}</td>
+                                <td className="px-4 py-2 text-gray-700">{energy}</td>
+                                <td className="px-4 py-2 text-gray-700">{temperature}</td>
+                                <td className="px-4 py-2 text-gray-600 text-xs">{item.createdat?.substring(0, 19) || '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-blue-800">No data available for this connector.</p>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
