@@ -90,39 +90,56 @@ const ChargingStations: React.FC = () => {
     }
   };
 
-  const fetchAIHealthReport = async (evseId: string) => {
-    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '' }));
+  const fetchAIHealthReport = async (evseId: string, connectorId: number = 1) => {
+    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '', aiImageUrl: undefined }));
     try {
-      // Get fresh token
+      console.log(`Generating AI report for EVSE: ${evseId}, Connector: ${connectorId}`);
+
+      // Get fresh token first
       const tokenRes = await fetch(TOKEN_ENDPOINT);
       if (!tokenRes.ok) throw new Error('Failed to get authorization token');
       const tokenData = await tokenRes.json();
       const token = tokenData.token;
 
-      // Call inference pipeline via Lambda
-      const response = await fetch('/.netlify/functions/generate-report', {
+      // Try to call the API endpoint
+      // This will work on Vercel deployment or when backend is running
+      const response = await fetch('/api/generate-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           evse_id: evseId,
-          api_url: `${API_BASE_URL}?role=Admin&operator=All&evse_id=${evseId}&connector_id=1&page=1&limit=60`,
-          auth_token: token,
-          limit: 60
+          connector_id: connectorId,
+          auth_token: token
         })
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to generate AI report: ${response.status} - ${errorText}`);
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log('API Response:', responseText);
+
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
+        }
+        
+        if (!result.success || !result.image_url) {
+          throw new Error(result.error || 'No image URL returned from pipeline');
+        }
+
+        setReportModal((prev) => ({ 
+          ...prev, 
+          aiImageUrl: result.image_url,
+          aiLoading: false,
+          aiError: ''
+        }));
+        return;
       }
 
-      const result = await response.json();
-      setReportModal((prev) => ({ 
-        ...prev, 
-        aiImageUrl: result.image_url || result.s3_url, 
-        aiLoading: false,
-        aiError: result.error ? result.error : ''
-      }));
+      // Fallback: If API endpoint not available, show loading and message
+      throw new Error('API endpoint not available. Please deploy to Vercel for full AI report functionality.');
+      
     } catch (err) {
       console.error('AI Report error:', err);
       setReportModal((prev) => ({ 
@@ -576,7 +593,7 @@ const ChargingStations: React.FC = () => {
                   {/* Get AI Health Report Button */}
                   <div className="flex gap-2 mb-4">
                     <button
-                      onClick={() => fetchAIHealthReport(reportModal.evseId)}
+                      onClick={() => fetchAIHealthReport(reportModal.evseId, reportModal.connectorId)}
                       disabled={reportModal.aiLoading}
                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all duration-300 disabled:cursor-not-allowed"
                     >
