@@ -38,16 +38,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Calling Lambda function with payload:', JSON.stringify(lambdaPayload));
 
-    // Use AWS Lambda invoke (assuming it's exposed via API Gateway or direct invoke)
-    // For now, let's construct a direct call to the inference endpoint
+    // Call public Lambda Function URL (provided)
     let lambdaResponse: any = await fetch(
-      'https://your-lambda-api-gateway-url/generate-report',
+      'https://oxpqujwper7tjoz3an54ow7gae0jphwq.lambda-url.us-east-1.on.aws/',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(lambdaPayload)
       }
-    ).catch(async (fetchError) => {
+    ).catch(async (_fetchError) => {
       console.log('Lambda direct call failed, trying local inference...');
       
       // Fallback: Try to run locally if available
