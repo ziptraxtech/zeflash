@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ResponsiveContainer,
@@ -28,10 +28,13 @@ import {
   Share2,
   Calendar,
   Lock,
-  FileText
+  FileText,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as mlService from '../services/mlService';
 
 interface Range {
   min: number;
@@ -270,6 +273,31 @@ const BatteryReport: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [unlocked] = useState(false);
   const reportRef = useRef<HTMLDivElement | null>(null);
+  
+  // ML Generation State
+  const [mlReport, setMlReport] = useState<{
+    loading: boolean;
+    error: string | null;
+    images: string[];
+    dataCount: number;
+    hasReport: boolean;
+    generating: boolean;
+    generationProgress: number;
+    generationMessage: string;
+  }>({
+    loading: false,
+    error: null,
+    images: [],
+    dataCount: 0,
+    hasReport: false,
+    generating: false,
+    generationProgress: 0,
+    generationMessage: ''
+  });
+
+  // Parse evse_id and connector_id from deviceId (format: evseId_connectorId)
+  const [evseId, connectorIdStr] = (deviceId || '').split('_');
+  const connectorId = parseInt(connectorIdStr || '1');
 
   if (!report) {
     return (
@@ -421,6 +449,117 @@ const BatteryReport: React.FC = () => {
     alert('This feature will be available soon.');
   }, []);
 
+  // Handle ML Report Generation
+  const handleGenerateMLReport = async () => {
+    if (!evseId || !connectorId) {
+      alert('Invalid device ID format. Expected format: evseId_connectorId');
+      return;
+    }
+
+    setMlReport(prev => ({
+      ...prev,
+      generating: true,
+      generationProgress: 0,
+      generationMessage: 'Starting ML inference...',
+      error: null
+    }));
+
+    try {
+      await mlService.runInference(
+        {
+          evse_id: evseId,
+          connector_id: connectorId,
+          limit: 60
+        },
+        (status) => {
+          setMlReport(prev => ({
+            ...prev,
+            generationProgress: status.progress,
+            generationMessage: status.message
+          }));
+        }
+      );
+
+      // Fetch the generated images from S3
+      const s3BucketUrl = 'https://battery-ml-results-070872471952.s3.amazonaws.com';
+      const imageNames = [
+        'battery_health_report.png',
+        'voltage_analysis.png',
+        'current_analysis.png',
+        'temperature_analysis.png',
+        'soc_analysis.png',
+        'anomaly_detection.png'
+      ];
+
+      const imageUrls = imageNames.map(name => 
+        `${s3BucketUrl}/battery-reports/${evseId}_${connectorId}/${name}?t=${Date.now()}`
+      );
+
+      setMlReport(prev => ({
+        ...prev,
+        generating: false,
+        hasReport: true,
+        images: imageUrls,
+        generationProgress: 100,
+        generationMessage: 'ML report generated successfully!'
+      }));
+
+    } catch (error) {
+      console.error('ML report generation failed:', error);
+      setMlReport(prev => ({
+        ...prev,
+        generating: false,
+        error: error instanceof Error ? error.message : 'Failed to generate ML report',
+        generationMessage: 'Generation failed'
+      }));
+    }
+  };
+
+  // Check for existing ML reports on component mount
+  useEffect(() => {
+    const checkExistingMLReport = async () => {
+      if (!evseId || !connectorId) return;
+
+      setMlReport(prev => ({ ...prev, loading: true }));
+
+      try {
+        const s3BucketUrl = 'https://battery-ml-results-070872471952.s3.amazonaws.com';
+        const testImageUrl = `${s3BucketUrl}/battery-reports/${evseId}_${connectorId}/battery_health_report.png`;
+
+        // Check if image exists
+        const response = await fetch(testImageUrl, { method: 'HEAD' });
+        
+        if (response.ok) {
+          const imageNames = [
+            'battery_health_report.png',
+            'voltage_analysis.png',
+            'current_analysis.png',
+            'temperature_analysis.png',
+            'soc_analysis.png',
+            'anomaly_detection.png'
+          ];
+
+          const imageUrls = imageNames.map(name => 
+            `${s3BucketUrl}/battery-reports/${evseId}_${connectorId}/${name}?t=${Date.now()}`
+          );
+
+          setMlReport(prev => ({
+            ...prev,
+            loading: false,
+            hasReport: true,
+            images: imageUrls
+          }));
+        } else {
+          setMlReport(prev => ({ ...prev, loading: false, hasReport: false }));
+        }
+      } catch (error) {
+        setMlReport(prev => ({ ...prev, loading: false, hasReport: false }));
+      }
+    };
+
+    checkExistingMLReport();
+  }, [evseId, connectorId]);
+
   const handleUnlockAI = useCallback(() => {
     if (!deviceId) {
       navigate('/stations');
@@ -460,6 +599,27 @@ const BatteryReport: React.FC = () => {
                 <Download className="sm:mr-2" size={18} />
                 <span className="hidden sm:inline">{exporting ? 'Exporting…' : 'Export PDF'}</span>
               </button>
+              
+              <button
+                onClick={handleGenerateMLReport}
+                disabled={mlReport.generating}
+                className={`flex items-center px-2 sm:px-3 py-2 rounded-lg transition-colors ${
+                  mlReport.generating 
+                    ? 'bg-purple-100 text-purple-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                }`}
+                title="Generate AI Health Report using ML models"
+              >
+                {mlReport.generating ? (
+                  <RefreshCw className="sm:mr-2 animate-spin" size={18} />
+                ) : (
+                  <Sparkles className="sm:mr-2" size={18} />
+                )}
+                <span className="hidden sm:inline">
+                  {mlReport.generating ? 'Generating...' : 'Generate AI Report'}
+                </span>
+              </button>
+              
               <button
                 onClick={handleUnlockAI}
                 className="flex items-center px-2 sm:px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 transition-colors hover:bg-gray-100"
@@ -817,6 +977,144 @@ const BatteryReport: React.FC = () => {
 
         <div data-paywall-placeholder className="hidden mt-8 text-center text-xs italic text-gray-500">
           Premium AI analysis, verdict and action plan are omitted in this preview export. Generate the AI Report for full PDF content.
+        </div>
+
+        {/* ML Report Section */}
+        <div className="mt-8">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl shadow-lg p-8 border border-purple-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 rounded-xl">
+                  <Sparkles className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">ML-Powered Health Analysis</h3>
+                  <p className="text-gray-600">Advanced machine learning insights from 60 datapoints</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {mlReport.loading && (
+              <div className="text-center py-8">
+                <RefreshCw className="mx-auto animate-spin text-purple-600 mb-4" size={48} />
+                <p className="text-gray-600">Checking for existing ML reports...</p>
+              </div>
+            )}
+
+            {/* Generation Progress */}
+            {mlReport.generating && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-gray-700">
+                  <span className="font-medium">{mlReport.generationMessage}</span>
+                  <span className="font-bold text-purple-600">{mlReport.generationProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${mlReport.generationProgress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 text-center">
+                  Running autoencoder and isolation forest models... This may take 30-60 seconds.
+                </p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {mlReport.error && !mlReport.generating && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                <AlertTriangle className="mx-auto text-red-600 mb-3" size={48} />
+                <h4 className="font-semibold text-red-800 mb-2">Generation Failed</h4>
+                <p className="text-red-700 text-sm mb-4">{mlReport.error}</p>
+                <button
+                  onClick={handleGenerateMLReport}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Retry Generation
+                </button>
+              </div>
+            )}
+
+            {/* No Report State */}
+            {!mlReport.loading && !mlReport.generating && !mlReport.hasReport && !mlReport.error && (
+              <div className="text-center py-8">
+                <div className="bg-white rounded-xl p-8 border border-gray-200">
+                  <Sparkles className="mx-auto text-purple-600 mb-4" size={48} />
+                  <h4 className="font-semibold text-gray-900 mb-2">No ML Report Generated Yet</h4>
+                  <p className="text-gray-600 mb-6">
+                    Click "Generate AI Report" to analyze battery health using advanced ML models
+                  </p>
+                  <button
+                    onClick={handleGenerateMLReport}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+                  >
+                    <Sparkles size={20} />
+                    <span>Generate AI Health Report</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ML Report Images */}
+            {mlReport.hasReport && mlReport.images.length > 0 && (
+              <div className="space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center space-x-3">
+                  <CheckCircle className="text-green-600" size={24} />
+                  <div>
+                    <h4 className="font-semibold text-green-800">ML Analysis Complete</h4>
+                    <p className="text-sm text-green-700">
+                      6 detailed visualizations generated from {deviceId}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {mlReport.images.map((imageUrl, index) => {
+                    const imageName = ['Battery Health Report', 'Voltage Analysis', 'Current Analysis', 
+                                      'Temperature Analysis', 'SOC Analysis', 'Anomaly Detection'][index];
+                    return (
+                      <div key={index} className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                        <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
+                          <h4 className="font-semibold text-gray-900 flex items-center space-x-2">
+                            <Activity className="text-purple-600" size={18} />
+                            <span>{imageName}</span>
+                          </h4>
+                        </div>
+                        <div className="p-4">
+                          <img
+                            src={imageUrl}
+                            alt={imageName}
+                            className="w-full rounded-lg border border-gray-200"
+                            loading="lazy"
+                            onError={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.style.display = 'none';
+                              img.parentElement!.innerHTML = `
+                                <div class="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
+                                  <p class="text-gray-500">Image not available</p>
+                                </div>
+                              `;
+                            }}
+                          />
+                        </div>
+                        <div className="px-4 pb-4">
+                          <a
+                            href={imageUrl}
+                            download={`${imageName.replace(/ /g, '_')}.png`}
+                            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
+                          >
+                            <Download size={16} />
+                            <span>Download</span>
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

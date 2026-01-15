@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users, X } from 'lucide-react';
 import Papa from 'papaparse';
+import * as mlService from '../services/mlService';
 
 type CsvRow = {
   'S.No'?: string;
@@ -91,17 +92,76 @@ const ChargingStations: React.FC = () => {
   };
 
   const fetchAIHealthReport = async (evseId: string) => {
-    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '' }));
+    setReportModal((prev) => ({ ...prev, aiLoading: true, aiError: '', aiImageUrl: '' }));
     
-    // For demo: directly show the S3 image URL
-    setTimeout(() => {
-      setReportModal((prev) => ({ 
-        ...prev, 
-        aiImageUrl: 'https://battery-ml-results-070872471952.s3.amazonaws.com/battery-reports/032300130C03065_2/20260114T174949Z.png?AWSAccessKeyId=AKIARBACUDGIFTZVZI4C&Signature=LFXTiQ2kl1qdnaVqB0WbTCIKERc%3D&Expires=1769017791',
-        aiLoading: false,
-        aiError: ''
-      }));
-    }, 800);
+    try {
+      // Get connector ID from modal
+      const connectorId = reportModal.connectorId || 1;
+      const deviceId = `${evseId}_${connectorId}`;
+      const s3BucketUrl = 'https://battery-ml-results-070872471952.s3.amazonaws.com';
+      const imageUrl = `${s3BucketUrl}/battery-reports/${deviceId}/battery_health_report.png?t=${Date.now()}`;
+      
+      // First, try to load existing image from S3
+      try {
+        const checkResponse = await fetch(imageUrl, { method: 'HEAD' });
+        if (checkResponse.ok) {
+          // Image exists, display it immediately
+          setReportModal((prev) => ({ 
+            ...prev, 
+            aiImageUrl: imageUrl,
+            aiLoading: false,
+            aiError: ''
+          }));
+          return;
+        }
+      } catch (headError) {
+        console.log('No existing image found, will generate new one');
+      }
+      
+      // No existing image, trigger ML inference
+      console.log('Triggering ML inference for:', deviceId);
+      const result = await mlService.runInference(
+        {
+          evse_id: evseId,
+          connector_id: connectorId,
+          limit: 60
+        },
+        (status) => {
+          console.log(`ML Progress: ${status.progress}% - ${status.message}`);
+        }
+      );
+      
+      if (result.status === 'completed') {
+        setReportModal((prev) => ({ 
+          ...prev, 
+          aiImageUrl: imageUrl,
+          aiLoading: false,
+          aiError: ''
+        }));
+      } else if (result.status === 'failed') {
+        throw new Error(result.message || 'ML inference failed');
+      } else {
+        throw new Error('ML inference did not complete successfully');
+      }
+    } catch (error) {
+      console.error('AI Health Report Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate AI health report';
+      
+      // Check if it's a network error (backend not reachable)
+      if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError')) {
+        setReportModal((prev) => ({ 
+          ...prev, 
+          aiLoading: false,
+          aiError: 'Cannot reach ML backend server. Please ensure backend is running on http://localhost:8000'
+        }));
+      } else {
+        setReportModal((prev) => ({ 
+          ...prev, 
+          aiLoading: false,
+          aiError: errorMessage
+        }));
+      }
+    }
   };
 
   // These 6 stations are marked as online
@@ -545,21 +605,29 @@ const ChargingStations: React.FC = () => {
               ) : reportModal.data ? (
                 <div className="space-y-4">
                   {/* Get AI Health Report Button */}
-                  <div className="flex gap-2 mb-4">
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                    <div className="mb-3">
+                      <p className="text-sm text-gray-700 mb-1">
+                        <span className="font-semibold">Device ID:</span> {reportModal.evseId}_{reportModal.connectorId}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        S3 Path: battery-reports/{reportModal.evseId}_{reportModal.connectorId}/
+                      </p>
+                    </div>
                     <button
                       onClick={() => fetchAIHealthReport(reportModal.evseId)}
                       disabled={reportModal.aiLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all duration-300 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all duration-300 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                     >
                       {reportModal.aiLoading ? (
                         <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                          Generating...
+                          <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                          <span>Checking S3 & Generating...</span>
                         </>
                       ) : (
                         <>
-                          <BarChart3 className="w-4 h-4" />
-                          Get AI Health Report
+                          <BarChart3 className="w-5 h-5" />
+                          <span>Get AI Health Report</span>
                         </>
                       )}
                     </button>
@@ -570,6 +638,17 @@ const ChargingStations: React.FC = () => {
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <p className="text-red-800 font-semibold">AI Report Error</p>
                       <p className="text-red-600 text-sm mt-1">{reportModal.aiError}</p>
+                      <div className="mt-3 pt-3 border-t border-red-200">
+                        <p className="text-xs text-gray-700 mb-2">Try accessing S3 URL directly:</p>
+                        <a 
+                          href={`https://battery-ml-results-070872471952.s3.amazonaws.com/battery-reports/${reportModal.evseId}_${reportModal.connectorId}/battery_health_report.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                        >
+                          Open S3 Image
+                        </a>
+                      </div>
                     </div>
                   )}
 

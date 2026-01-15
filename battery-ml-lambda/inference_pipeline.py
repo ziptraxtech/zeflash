@@ -19,15 +19,29 @@ from typing import Optional, Tuple, Dict
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
+# Suppress TensorFlow warnings and info messages
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=no INFO, 2=no WARNING, 3=no INFO/WARNING/ERROR
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN custom ops to suppress warnings
+
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+
 import boto3
 import numpy as np
 import pandas as pd
 import joblib
 try:
     import tensorflow as tf
+    # Suppress TensorFlow logging
+    tf.get_logger().setLevel('ERROR')
+    import logging
+    logging.getLogger('tensorflow').setLevel(logging.ERROR)
+    logging.getLogger('keras').setLevel(logging.ERROR)
     TF_AVAILABLE = True
 except Exception as e:
-    print(f"⚠ TensorFlow not available: {e}")
+    print(f"[WARN] TensorFlow not available: {e}")
     TF_AVAILABLE = False
     tf = None
 import matplotlib
@@ -92,7 +106,7 @@ if TF_AVAILABLE:
         # Try to load just the weights
         autoencoder.load_weights(AUTOENCODER_PATH)
     except Exception as e:
-        print(f"⚠ Could not load weights from HDF5: {str(e)}")
+        print(f"[WARN] Could not load weights from HDF5: {str(e)}")
         print("Will use model for inference only without pre-trained weights")
 else:
     autoencoder = None
@@ -114,7 +128,7 @@ temp_thr = config.get("temperature_thresholds", {})
 
 s3_client = boto3.client("s3")
 
-print("✓ Models loaded successfully\n")
+print("[OK] Models loaded successfully\n")
 
 
 # ============ FUNCTIONS ============
@@ -138,18 +152,30 @@ def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: i
     
     print(f"Fetching {limit} latest documents from API...")
     print(f"URL: {api_url}\n")
+    print(f"Auth scheme: {auth_scheme}")
+    print(f"Auth token (first 20 chars): {auth_token[:20] if auth_token else 'None'}...\n")
     try:
         headers = {}
         if auth_token:
             # If token already includes scheme, use as-is; else apply provided scheme
             if any(auth_token.strip().startswith(prefix) for prefix in ("Bearer ", "Basic ", "basic ")):
                 headers['Authorization'] = auth_token.strip()
+                print(f"Using token as-is: {auth_token[:30]}...")
             else:
                 headers['Authorization'] = f'{auth_scheme} {auth_token.strip()}'
+                print(f"Applied scheme: {headers['Authorization'][:30]}...")
+        
+        print(f"Request headers: {headers}\n")
         
         req = Request(api_url, headers=headers)
         with urlopen(req, timeout=30) as response:
-            data = json.loads(response.read().decode('utf-8'))
+            raw_response = response.read().decode('utf-8')
+            print(f"Raw API response (first 500 chars):\n{raw_response[:500]}\n")
+            data = json.loads(raw_response)
+        
+        print(f"Parsed JSON type: {type(data)}")
+        if isinstance(data, dict):
+            print(f"JSON keys: {list(data.keys())}")
         
         # Handle different response formats
         if isinstance(data, dict):
@@ -166,6 +192,7 @@ def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: i
                 for key, value in data.items():
                     if isinstance(value, list):
                         items = value
+                        print(f"Using list from key: {key}")
                         break
                 else:
                     items = [data]
@@ -174,12 +201,12 @@ def fetch_data_from_api(api_url: str, auth_token: Optional[str] = None, limit: i
         else:
             items = [data]
         
-        print(f"✓ Fetched {len(items)} data points from API")
+        print(f"[OK] Fetched {len(items)} data points from API")
         if items:
             print(f"  Sample item keys: {list(items[0].keys()) if isinstance(items[0], dict) else 'N/A'}\n")
         return items
     except Exception as e:
-        print(f"✗ Error fetching from API: {str(e)}\n")
+        print(f"[ERROR] Error fetching from API: {str(e)}\n")
         raise
 
 
@@ -322,7 +349,7 @@ def build_features(items: list) -> Tuple[np.ndarray, pd.DataFrame]:
     X = df[feature_names].values
     base_stats = df[["current", "temperature"]].reset_index(drop=True)
 
-    print(f"✓ Built features: shape {X.shape}")
+    print(f"[OK] Built features: shape {X.shape}")
     return X, base_stats
 
 
@@ -429,8 +456,9 @@ def generate_visualization(result: Dict, device_id: str) -> io.BytesIO:
 
 def upload_to_s3(buf: io.BytesIO, device_id: str, result: Dict) -> Tuple[str, str]:
     """Upload visualization to S3 and return key and URL."""
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    key = f"{S3_PREFIX.rstrip('/')}/{device_id}/{timestamp}.png"
+    # Use fixed filename instead of timestamp so frontend can always find it
+    filename = "battery_health_report.png"
+    key = f"{S3_PREFIX.rstrip('/')}/{device_id}/{filename}"
 
     print(f"Uploading to S3: {key}")
     
@@ -445,12 +473,12 @@ def upload_to_s3(buf: io.BytesIO, device_id: str, result: Dict) -> Tuple[str, st
             Metadata={
                 "status": result["status"],
                 "device_id": device_id,
-                "timestamp": timestamp
+                "generated_at": datetime.now(timezone.utc).isoformat()
             }
         )
-        print(f"✓ Uploaded to S3 (public-read)")
+        print(f"[OK] Uploaded to S3 (public-read)")
     except Exception as e:
-        print(f"⚠ Could not set public-read ACL: {str(e)}")
+        print(f"[WARN] Could not set public-read ACL: {str(e)}")
         print("Uploading without ACL...")
         s3_client.put_object(
             Bucket=S3_BUCKET,
@@ -460,7 +488,7 @@ def upload_to_s3(buf: io.BytesIO, device_id: str, result: Dict) -> Tuple[str, st
             Metadata={
                 "status": result["status"],
                 "device_id": device_id,
-                "timestamp": timestamp
+                "generated_at": datetime.now(timezone.utc).isoformat()
             }
         )
 
@@ -474,7 +502,7 @@ def upload_to_s3(buf: io.BytesIO, device_id: str, result: Dict) -> Tuple[str, st
     # Also generate direct public URL
     public_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{key}"
 
-    print(f"✓ Uploaded to S3: {key}")
+    print(f"[OK] Uploaded to S3: {key}")
     print(f"  - Presigned URL (7 days): {url[:80]}...")
     print(f"  - Public URL: {public_url}\n")
     
@@ -527,7 +555,7 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
 
     # Step 2: Build features
     X_raw, base_stats = build_features(items)
-    print(f"✓ Feature matrix shape: {X_raw.shape}")
+    print(f"[OK] Feature matrix shape: {X_raw.shape}")
     print(f"  - Current range: [{X_raw[:, 0].min():.2f}, {X_raw[:, 0].max():.2f}]")
     print(f"  - Temperature range: [{X_raw[:, 1].min():.2f}, {X_raw[:, 1].max():.2f}]\n")
 
@@ -539,7 +567,7 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
         print("Running autoencoder...")
         recon = autoencoder.predict(X_scaled, verbose=0)
         recon_errors = np.mean(np.square(X_scaled - recon), axis=1)
-        print(f"✓ Reconstruction error range: [{recon_errors.min():.4f}, {recon_errors.max():.4f}]")
+        print(f"[OK] Reconstruction error range: [{recon_errors.min():.4f}, {recon_errors.max():.4f}]")
         print(f"  - Threshold: {ae_threshold:.4f}")
         print(f"  - Anomalies detected: {np.sum(recon_errors > ae_threshold)}/{len(recon_errors)}\n")
     else:
@@ -550,7 +578,7 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
     print("Running isolation forest...")
     iso_preds = iso_forest.predict(X_scaled)
     iso_anomalies = np.sum(iso_preds == -1)
-    print(f"✓ Isolation Forest anomalies: {iso_anomalies}/{len(iso_preds)}\n")
+    print(f"[OK] Isolation Forest anomalies: {iso_anomalies}/{len(iso_preds)}\n")
 
     # Step 6: Classify
     counts, severities = classify_anomalies(recon_errors, iso_preds, base_stats)
@@ -568,7 +596,7 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
     for severity, count in counts.items():
         print(f"  - {severity.capitalize()}: {count}")
     
-    print(f"\n🔴 Overall Status: {status}\n")
+    print(f"\n[STATUS] Overall Status: {status}\n")
 
     # Step 7: Generate visualization
     print("Generating visualization...")
@@ -580,11 +608,11 @@ def run_inference_pipeline(device_id: str, api_url: Optional[str] = None,
     result["s3_url"] = s3_url
 
     print("=" * 70)
-    print("✅ INFERENCE PIPELINE COMPLETE")
+    print("[SUCCESS] INFERENCE PIPELINE COMPLETE")
     print("=" * 70)
     print(f"\nResults:")
     print(json.dumps(result, indent=2, default=str))
-    print(f"\n📊 Image URL: {s3_url}")
+    print(f"\n[IMAGE] Image URL: {s3_url}")
     
     return result
 
@@ -638,7 +666,7 @@ if __name__ == "__main__":
             args.auth_scheme,
         )
     except Exception as e:
-        print(f"\n❌ ERROR: {str(e)}")
+        print(f"\n[ERROR] ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         exit(1)
