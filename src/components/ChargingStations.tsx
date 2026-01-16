@@ -1,8 +1,25 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users, X } from 'lucide-react';
+import { Search, MapPin, ArrowLeft, BarChart3, Zap, Clock, CheckCircle, Users, X, Activity, Thermometer, RefreshCw, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import * as mlService from '../services/mlService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend
+} from 'recharts';
 
 type CsvRow = {
   'S.No'?: string;
@@ -54,12 +71,17 @@ const ChargingStations: React.FC = () => {
     aiLoading: false,
     aiError: ''
   });
+  const reportContentRef = useRef<HTMLDivElement>(null);
 
   const TOKEN_ENDPOINT = 'https://cms.charjkaro.in/admin/api/v1/zipbolt/token';
   const API_BASE_URL = 'https://cms.charjkaro.in/commands/secure/api/v1/get/charger/time_lapsed';
 
-  const fetchChargerReport = async (evseId: string, connectorId: number) => {
-    setReportModal({ open: true, evseId, connectorId, data: null, loading: true, error: '' });
+  const fetchChargerReport = async (evseId: string, connectorId: number, silent: boolean = false) => {
+    if (!silent) {
+      setReportModal(prev => ({ ...prev, open: true, evseId, connectorId, data: null, loading: true, error: '' }));
+    } else {
+      setReportModal(prev => ({ ...prev, loading: true, error: '' }));
+    }
     try {
       // First, get a fresh token
       const tokenRes = await fetch(TOKEN_ENDPOINT);
@@ -70,7 +92,7 @@ const ChargingStations: React.FC = () => {
       const token = tokenData.token;
 
       // Then, use the token to fetch charger report
-      const url = `${API_BASE_URL}?role=Admin&operator=All&evse_id=${evseId}&connector_id=${connectorId}&page=1&limit=10`;
+      const url = `${API_BASE_URL}?role=Admin&operator=All&evse_id=${evseId}&connector_id=${connectorId}&page=1&limit=20`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -559,19 +581,65 @@ const ChargingStations: React.FC = () => {
       {/* Report Modal */}
       {reportModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] overflow-auto">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-blue-100 p-6 sticky top-0 bg-white">
-              <div>
+            <div className="flex items-center justify-between border-b border-blue-100 p-6 sticky top-0 bg-white z-10">
+              <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">Charger Report</h2>
                 <p className="text-sm text-gray-600 mt-1">EVSE ID: {reportModal.evseId} • Connector: {reportModal.connectorId}</p>
               </div>
-              <button
-                onClick={() => setReportModal({ ...reportModal, open: false })}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Download button with visuals */}
+                <button
+                  onClick={async () => {
+                    if (!reportContentRef.current || !reportModal.data?.data) return;
+                    try {
+                      const canvas = await html2canvas(reportContentRef.current, {
+                        scale: 2,
+                        logging: false,
+                        useCORS: true
+                      });
+                      const imgData = canvas.toDataURL('image/png');
+                      const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: 'a4'
+                      });
+                      const imgWidth = 297;
+                      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                      pdf.save(`charger_report_${reportModal.evseId}_${reportModal.connectorId}_${new Date().toISOString().slice(0, 10)}.pdf`);
+                    } catch (error) {
+                      console.error('Error generating PDF:', error);
+                      alert('Failed to generate PDF. Please try again.');
+                    }
+                  }}
+                  disabled={!reportModal.data?.data || reportModal.loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download report with visuals as PDF"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Report</span>
+                </button>
+                
+                {/* Manual refresh button */}
+                <button
+                  onClick={() => fetchChargerReport(reportModal.evseId, reportModal.connectorId, true)}
+                  disabled={reportModal.loading}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  title="Refresh now"
+                >
+                  <RefreshCw className={`w-5 h-5 text-gray-700 ${reportModal.loading ? 'animate-spin' : ''}`} />
+                </button>
+                
+                {/* Close button */}
+                <button
+                  onClick={() => setReportModal({ ...reportModal, open: false })}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-700" />
+                </button>
+              </div>
             </div>
 
             {/* Content */}
@@ -668,55 +736,47 @@ const ChargingStations: React.FC = () => {
                     </div>
                   )}
                   {reportModal.data.data && reportModal.data.data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b border-gray-200 bg-gray-50">
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Connector ID</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Voltage (V)</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Power (W)</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Current (A)</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Energy (Wh)</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Temperature (°C)</th>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-900">Created At</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reportModal.data.data.map((item: any, idx: number) => {
-                            let connectorId = '-';
-                            let voltage = '-';
-                            let power = '-';
-                            let current = '-';
-                            let energy = '-';
-                            let temperature = '-';
-                            
-                            if (item.payload && Array.isArray(item.payload)) {
-                              for (const p of item.payload) {
-                                if (p.Key === 'connectorId') {
-                                  connectorId = p.Value;
-                                }
-                                if (p.Key === 'meterValue' && p.Value && Array.isArray(p.Value)) {
-                                  const meterArray = p.Value[0];
-                                  if (meterArray && Array.isArray(meterArray)) {
-                                    for (const meter of meterArray) {
-                                      if (meter.Key === 'sampledValue' && meter.Value && Array.isArray(meter.Value)) {
-                                        // sampledValue is an array of arrays
-                                        for (const sample of meter.Value) {
-                                          if (Array.isArray(sample)) {
-                                            let measurand = '';
-                                            let value = '';
-                                            
-                                            for (const item of sample) {
-                                              if (item.Key === 'measurand') measurand = item.Value;
-                                              if (item.Key === 'value') value = item.Value;
-                                            }
-                                            
-                                            if (measurand === 'Voltage') voltage = value;
-                                            else if (measurand === 'Power.Active.Import') power = value;
-                                            else if (measurand === 'Current.Import') current = value;
-                                            else if (measurand === 'Energy.Active.Import.Register') energy = value;
-                                            else if (measurand === 'Temperature') temperature = value;
+                    <div ref={reportContentRef} className="space-y-6">
+                      {/* Parse data for visualizations */}
+                      {(() => {
+                        const parsedData: Array<{
+                          timestamp: string;
+                          voltage: number;
+                          power: number;
+                          current: number;
+                          energy: number;
+                          temperature: number;
+                        }> = [];
+                        
+                        reportModal.data.data.forEach((item: any) => {
+                          let voltage = 0;
+                          let power = 0;
+                          let current = 0;
+                          let energy = 0;
+                          let temperature = 0;
+                          
+                          if (item.payload && Array.isArray(item.payload)) {
+                            for (const p of item.payload) {
+                              if (p.Key === 'meterValue' && p.Value && Array.isArray(p.Value)) {
+                                const meterArray = p.Value[0];
+                                if (meterArray && Array.isArray(meterArray)) {
+                                  for (const meter of meterArray) {
+                                    if (meter.Key === 'sampledValue' && meter.Value && Array.isArray(meter.Value)) {
+                                      for (const sample of meter.Value) {
+                                        if (Array.isArray(sample)) {
+                                          let measurand = '';
+                                          let value = '';
+                                          
+                                          for (const item of sample) {
+                                            if (item.Key === 'measurand') measurand = item.Value;
+                                            if (item.Key === 'value') value = item.Value;
                                           }
+                                          
+                                          if (measurand === 'Voltage') voltage = parseFloat(value) || 0;
+                                          else if (measurand === 'Power.Active.Import') power = parseFloat(value) || 0;
+                                          else if (measurand === 'Current.Import') current = parseFloat(value) || 0;
+                                          else if (measurand === 'Energy.Active.Import.Register') energy = parseFloat(value) || 0;
+                                          else if (measurand === 'Temperature') temperature = parseFloat(value) || 0;
                                         }
                                       }
                                     }
@@ -724,21 +784,158 @@ const ChargingStations: React.FC = () => {
                                 }
                               }
                             }
+                          }
+                          
+                          parsedData.push({
+                            timestamp: item.createdat?.substring(11, 16) || '',
+                            voltage,
+                            power,
+                            current,
+                            energy,
+                            temperature
+                          });
+                        });
+                        
+                        // Calculate averages and stats
+                        const avgCurrent = parsedData.reduce((sum, d) => sum + d.current, 0) / parsedData.length;
+                        const avgTemperature = parsedData.reduce((sum, d) => sum + d.temperature, 0) / parsedData.length;
+                        const maxCurrent = Math.max(...parsedData.map(d => d.current));
+                        const totalEnergy = parsedData[parsedData.length - 1]?.energy - parsedData[0]?.energy;
+                        
+                        // Energy for bar chart (convert to kWh)
+                        const energyData = parsedData.slice(-8).map((d, i) => ({
+                          name: d.timestamp,
+                          energy: (d.energy / 1000).toFixed(2)
+                        }));
+                        
+                        // Power trend data
+                        const powerData = parsedData.map(d => ({
+                          time: d.timestamp,
+                          power: parseFloat((d.power / 1000).toFixed(2)),
+                          voltage: parseFloat(d.voltage.toFixed(1))
+                        }));
+                        
+                        return (
+                          <>
+                            {/* Top Row: Current Gauge and Energy Bar Chart */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                              {/* Current Gauge */}
+                              <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm">
+                                <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-3 md:mb-4">Current</h3>
+                                <div className="flex flex-col items-center">
+                                  <div className="relative w-32 h-16 md:w-48 md:h-24">
+                                    <svg viewBox="0 0 100 50" className="w-full h-full">
+                                      {/* Background arc */}
+                                      <path
+                                        d="M 10 45 A 40 40 0 0 1 90 45"
+                                        fill="none"
+                                        stroke="#e5e7eb"
+                                        strokeWidth="8"
+                                      />
+                                      {/* Value arc */}
+                                      <path
+                                        d="M 10 45 A 40 40 0 0 1 90 45"
+                                        fill="none"
+                                        stroke="#06b6d4"
+                                        strokeWidth="8"
+                                        strokeDasharray={`${(avgCurrent / maxCurrent) * 125} 125`}
+                                        strokeLinecap="round"
+                                      />
+                                      {/* Needle */}
+                                      <line
+                                        x1="50"
+                                        y1="45"
+                                        x2={50 + 35 * Math.cos((Math.PI * (avgCurrent / maxCurrent)) - Math.PI)}
+                                        y2={45 + 35 * Math.sin((Math.PI * (avgCurrent / maxCurrent)) - Math.PI)}
+                                        stroke="#0891b2"
+                                        strokeWidth="2"
+                                      />
+                                      <circle cx="50" cy="45" r="3" fill="#0891b2" />
+                                    </svg>
+                                  </div>
+                                  <div className="text-center mt-2">
+                                    <p className="text-2xl md:text-3xl font-bold text-gray-900">{avgCurrent.toFixed(2)}</p>
+                                    <p className="text-xs md:text-sm text-gray-600">Amperes</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Energy Generation Bar Chart */}
+                              <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm">
+                                <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-3 md:mb-4">Energy Generation</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 mb-2">kWh</p>
+                                <ResponsiveContainer width="100%" height={120}>
+                                  <BarChart data={energyData}>
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                    <YAxis tick={{ fontSize: 10 }} />
+                                    <RechartsTooltip />
+                                    <Bar dataKey="energy" fill="#22c55e" radius={[8, 8, 0, 0]} />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
                             
-                            return (
-                              <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50">
-                                <td className="px-4 py-2 text-gray-900 font-semibold">{connectorId}</td>
-                                <td className="px-4 py-2 text-gray-700">{voltage}</td>
-                                <td className="px-4 py-2 text-gray-700">{power}</td>
-                                <td className="px-4 py-2 text-gray-700">{current}</td>
-                                <td className="px-4 py-2 text-gray-700">{energy}</td>
-                                <td className="px-4 py-2 text-gray-700">{temperature}</td>
-                                <td className="px-4 py-2 text-gray-600 text-xs">{item.createdat?.substring(0, 19) || '-'}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                            {/* Power Trend Line Chart */}
+                            <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 md:mb-4 gap-2">
+                                <h3 className="text-xs md:text-sm font-semibold text-gray-600">Power & Voltage Trends</h3>
+                                <span className="text-[10px] md:text-xs bg-gray-100 px-2 py-1 rounded w-fit">Last {parsedData.length} readings</span>
+                              </div>
+                              <ResponsiveContainer width="100%" height={180}>
+                                <LineChart data={powerData}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                  <XAxis dataKey="time" tick={{ fontSize: 9 }} />
+                                  <YAxis yAxisId="left" tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                                  <RechartsTooltip />
+                                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                  <Line yAxisId="left" type="monotone" dataKey="power" stroke="#dc2626" strokeWidth={2} name="Power (kW)" dot={{ r: 2 }} />
+                                  <Line yAxisId="right" type="monotone" dataKey="voltage" stroke="#3b82f6" strokeWidth={2} name="Voltage (V)" dot={{ r: 2 }} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            {/* Bottom Row: Stats Cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg md:rounded-xl p-3 md:p-4 border border-blue-200">
+                                <div className="flex items-center justify-between mb-1 md:mb-2">
+                                  <Zap className="text-blue-600" size={16} />
+                                  <span className="text-[9px] md:text-xs font-medium text-blue-600 bg-blue-200 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Voltage</span>
+                                </div>
+                                <p className="text-lg md:text-2xl font-bold text-blue-900">{parsedData[parsedData.length - 1]?.voltage.toFixed(1) || 0}V</p>
+                                <p className="text-[10px] md:text-xs text-blue-700">Current Reading</p>
+                              </div>
+                              
+                              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg md:rounded-xl p-3 md:p-4 border border-green-200">
+                                <div className="flex items-center justify-between mb-1 md:mb-2">
+                                  <Activity className="text-green-600" size={16} />
+                                  <span className="text-[9px] md:text-xs font-medium text-green-600 bg-green-200 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Power</span>
+                                </div>
+                                <p className="text-lg md:text-2xl font-bold text-green-900">{(parsedData[parsedData.length - 1]?.power / 1000).toFixed(2) || 0}kW</p>
+                                <p className="text-[10px] md:text-xs text-green-700">Active Power</p>
+                              </div>
+                              
+                              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg md:rounded-xl p-3 md:p-4 border border-purple-200">
+                                <div className="flex items-center justify-between mb-1 md:mb-2">
+                                  <BarChart3 className="text-purple-600" size={16} />
+                                  <span className="text-[9px] md:text-xs font-medium text-purple-600 bg-purple-200 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Energy</span>
+                                </div>
+                                <p className="text-lg md:text-2xl font-bold text-purple-900">{(totalEnergy / 1000).toFixed(2)}kWh</p>
+                                <p className="text-[10px] md:text-xs text-purple-700">Total Consumed</p>
+                              </div>
+                              
+                              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg md:rounded-xl p-3 md:p-4 border border-orange-200">
+                                <div className="flex items-center justify-between mb-1 md:mb-2">
+                                  <Thermometer className="text-orange-600" size={16} />
+                                  <span className="text-[9px] md:text-xs font-medium text-orange-600 bg-orange-200 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Temp</span>
+                                </div>
+                                <p className="text-lg md:text-2xl font-bold text-orange-900">{avgTemperature.toFixed(1)}°C</p>
+                                <p className="text-[10px] md:text-xs text-orange-700">Average Temp</p>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
