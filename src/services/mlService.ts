@@ -4,6 +4,8 @@
 
 const ML_API_URL = import.meta.env.VITE_ML_API_URL || 'http://localhost:8000';
 
+console.log('ML Service initialized with URL:', ML_API_URL);
+
 export interface InferenceRequest {
   evse_id: string;
   connector_id: number;
