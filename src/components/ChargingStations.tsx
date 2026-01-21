@@ -170,10 +170,11 @@ const ChargingStations: React.FC = () => {
       
       // Check if it's a network error (backend not reachable)
       if (errorMessage.includes('fetch') || errorMessage.includes('NetworkError')) {
+        const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://localhost:8000';
         setReportModal((prev) => ({ 
           ...prev, 
           aiLoading: false,
-          aiError: 'Cannot reach ML backend server. Please ensure backend is running on http://localhost:8000'
+          aiError: `Cannot reach ML backend server at ${mlApiUrl}. Please check your network connection.`
         }));
       } else {
         setReportModal((prev) => ({ 

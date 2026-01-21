@@ -4,6 +4,8 @@
 
 const ML_API_URL = import.meta.env.VITE_ML_API_URL || 'http://localhost:8000';
 
+console.log('ML Service initialized with URL:', ML_API_URL);
+
 export interface InferenceRequest {
   evse_id: string;
   connector_id: number;
@@ -35,13 +37,14 @@ export interface JobStatus {
  * Trigger ML inference for battery health analysis
  */
 export async function triggerInference(request: InferenceRequest): Promise<InferenceResponse> {
-  const response = await fetch(`${ML_API_URL}/api/v1/inference/trigger`, {
+  const response = await fetch(`${ML_API_URL}?path=/api/v1/inference/trigger`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(request),
   });
+
 
   if (!response.ok) {
     throw new Error(`Failed to trigger inference: ${response.statusText}`);
@@ -54,7 +57,15 @@ export async function triggerInference(request: InferenceRequest): Promise<Infer
  * Get the status of an ML inference job
  */
 export async function getJobStatus(jobId: string): Promise<JobStatus> {
-  const response = await fetch(`${ML_API_URL}/api/v1/inference/status/${jobId}`);
+<<<<<<< HEAD
+  const url = ML_API_URL.startsWith('/api/ml-proxy')
+    ? `${ML_API_URL}?path=/api/v1/inference/status/${jobId}`
+    : `${ML_API_URL}/api/v1/inference/status/${jobId}`;
+    
+  const response = await fetch(url);
+=======
+  const response = await fetch(`${ML_API_URL}?path=/api/v1/inference/status/${jobId}`);
+>>>>>>> main
 
   if (!response.ok) {
     throw new Error(`Failed to get job status: ${response.statusText}`);
@@ -67,7 +78,15 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
  * Get the result of a completed ML inference job
  */
 export async function getJobResult(jobId: string): Promise<any> {
-  const response = await fetch(`${ML_API_URL}/api/v1/inference/result/${jobId}`);
+<<<<<<< HEAD
+  const url = ML_API_URL.startsWith('/api/ml-proxy')
+    ? `${ML_API_URL}?path=/api/v1/inference/result/${jobId}`
+    : `${ML_API_URL}/api/v1/inference/result/${jobId}`;
+    
+  const response = await fetch(url);
+=======
+  const response = await fetch(`${ML_API_URL}?path=/api/v1/inference/result/${jobId}`);
+>>>>>>> main
 
   if (!response.ok) {
     throw new Error(`Failed to get job result: ${response.statusText}`);
