@@ -57,15 +57,7 @@ export async function triggerInference(request: InferenceRequest): Promise<Infer
  * Get the status of an ML inference job
  */
 export async function getJobStatus(jobId: string): Promise<JobStatus> {
-<<<<<<< HEAD
-  const url = ML_API_URL.startsWith('/api/ml-proxy')
-    ? `${ML_API_URL}?path=/api/v1/inference/status/${jobId}`
-    : `${ML_API_URL}/api/v1/inference/status/${jobId}`;
-    
-  const response = await fetch(url);
-=======
   const response = await fetch(`${ML_API_URL}?path=/api/v1/inference/status/${jobId}`);
->>>>>>> main
 
   if (!response.ok) {
     throw new Error(`Failed to get job status: ${response.statusText}`);
@@ -78,15 +70,7 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
  * Get the result of a completed ML inference job
  */
 export async function getJobResult(jobId: string): Promise<any> {
-<<<<<<< HEAD
-  const url = ML_API_URL.startsWith('/api/ml-proxy')
-    ? `${ML_API_URL}?path=/api/v1/inference/result/${jobId}`
-    : `${ML_API_URL}/api/v1/inference/result/${jobId}`;
-    
-  const response = await fetch(url);
-=======
   const response = await fetch(`${ML_API_URL}?path=/api/v1/inference/result/${jobId}`);
->>>>>>> main
 
   if (!response.ok) {
     throw new Error(`Failed to get job result: ${response.statusText}`);
