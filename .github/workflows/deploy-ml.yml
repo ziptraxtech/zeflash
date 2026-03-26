@@ -65,12 +65,19 @@ jobs:
           image: ${{ steps.image.outputs.image }}
 
       - name: Deploy to Amazon ECS service
-        uses: aws-actions/deploy-to-ecs@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.task-def.outputs.task-definition }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for service stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
 
       - name: Deployment complete
-        run: echo "ML Service deployed to ECS successfully"
+        run: echo "✅ ML Service deployed to ECS successfully"
