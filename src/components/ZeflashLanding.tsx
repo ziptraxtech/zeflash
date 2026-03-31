@@ -54,10 +54,7 @@ const ZeflashLanding: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Show coupon banner on every page load (dismissible per view only)
-  useEffect(() => {
-    setShowCouponBanner(true);
-  }, []);
+  // Coupon banner is now triggered by button click only, not on page load
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-blue-50/50 text-gray-900">
@@ -92,6 +89,7 @@ const ZeflashLanding: React.FC = () => {
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <Link
                 to="/stations"
+                onClick={() => setShowCouponBanner(false)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-purple-700 text-xs sm:text-sm font-semibold px-4 py-2 shadow-md hover:bg-purple-50 transition-colors flex-1"
               >
                 Try with Coupon
@@ -172,9 +170,12 @@ const ZeflashLanding: React.FC = () => {
                 Zeflash combines flash-based EV testing at Fast Chargers with ZipsureAI's battery physics-driven AI Deeptech to decode your EV's true performance, aging, and safety condition on the spot.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-4 py-2.5 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200/30">
-                  <CheckCircle size={18} /> Book a Zeflash RapidTest
-                </Link>
+                <button 
+                  onClick={() => setShowCouponBanner(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-4 py-2.5 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200/30"
+                >
+                  <CheckCircle size={18} /> Get 20 Min AI RapidTest
+                </button>
                 <Link to="/plans" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white font-medium px-4 py-2.5 hover:from-emerald-600 hover:to-green-700 shadow-md shadow-emerald-200/30">
                   <Play size={18} /> Flexible Testing Plans
                 </Link>
@@ -537,9 +538,12 @@ const ZeflashLanding: React.FC = () => {
             Zeflash turns complex battery data into clear, confident action — empowering every EV decision with real-time intelligence.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 justify-center">
-            <Link to="/stations" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white font-semibold px-5 py-3 hover:bg-blue-700">
-              <Bolt size={18} /> Book a Zeflash RapidTest
-            </Link>
+            <button 
+              onClick={() => setShowCouponBanner(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white font-semibold px-5 py-3 hover:bg-blue-700"
+            >
+              <Bolt size={18} /> Get 20 Min AI RapidTest
+            </button>
             <Link to="/plans" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white font-medium px-5 py-3 hover:from-emerald-600 hover:to-green-700 shadow-md shadow-emerald-200/30">
               <Play size={18} /> Flexible Testing Plans
             </Link>
